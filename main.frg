@@ -5,47 +5,39 @@ option run_sterling "vis.js"
 // =============================================================================
 // Component Hierarchy: abstract signatures for our software stack
 // =============================================================================
+
+abstract sig Boolean {}
+one sig True, False extends Boolean {}
+
 abstract sig Component {}
 
-abstract sig Frontend extends Component {}
-abstract sig Backend  extends Component {}
-abstract sig Database extends Component {}
-abstract sig ORM      extends Component {}      // For pairing with databases
-abstract sig Authorization extends Component {}
+abstract sig Frontend, Backend, Database, ORM, Authorization  extends Component {}
+
 
 // =============================================================================
 // Specific Technology Instances
 // =============================================================================
-one sig NextJS      extends Frontend {}     // Next.js frontend
-one sig ReactJS     extends Frontend {}     // Alternative frontend
-one sig Vite       extends Frontend {}     // Vite frontend
-one sig Angular     extends Frontend {}     // Angular frontend
-one sig SvelteKit extends Frontend {} // Svelte frontend
-one sig VueJS extends Frontend {}     // Vue.js frontend
+one sig NextJS, ReactJS, Vite, Angular, SvelteKit, VueJS extends Frontend {}     // Next.js frontend
 
 
-one sig PythonBackend extends Backend {}    // e.g. a Python-based backend
-one sig NodeBackend   extends Backend {}      // e.g. a Node.js-based backend
-one sig JavaBackend   extends Backend {}      // e.g. a Java-based backend
-one sig GoBackend extends Backend {}  // Go-based backend
-one sig RubyBackend extends Backend {} // Ruby on Rails backend
+one sig PythonBackend, NodeBackend, JavaBackend, GoBackend, RubyBackend extends Backend {}    // e.g. a Python-based backend
 
 
-one sig Postgres      extends Database {}    // e.g. PostgreSQL database
-one sig SQLDatabase   extends Database {}    // e.g. generic SQL database
-one sig MongoDB extends Database {}   // MongoDB NoSQL database
-one sig Redis extends Database {}     // Redis in-memory database
-one sig Firebase extends Database {}  // Firebase Realtime Database
+one sig Postgres, SQLDatabase, MongoDB, Redis, Firebase extends Database {}  // e.g. Postgres SQL database
 
 
-one sig PrismaORM     extends ORM {}         // e.g. Prisma ORM x
-one sig DrizzleORM    extends ORM {}         // e.g. Drizzle ORM 
+one sig PrismaORM, DrizzleORM extends ORM {}         // e.g. Prisma ORM x
 
-one sig OAuth         extends Authorization {} // e.g. OAuth-based auth
-one sig JWTAuth       extends Authorization {} // e.g. JWT-based auth
-one sig FirebaseAuth extends Authorization {} // Firebase Authentication
-one sig Auth0 extends Authorization {}        // Auth0 service
-one sig ClerkAuth extends Authorization {}    // Clerk authentication
+one sig OAuth, FirebaseAuth, JWTAuth, Auth0, ClerkAuth extends Authorization {} // e.g. OAuth-based auth
+
+
+
+
+sig Compatibility {
+  tech1: one Component, 
+  tech2: one Component,
+  compatible: one Boolean
+}
 
 // =============================================================================
 // Quality Attributes
@@ -53,7 +45,6 @@ one sig ClerkAuth extends Authorization {}    // Clerk authentication
 abstract sig Quality {}
 one sig Scalability, Speed, Reliability, Maintainability, Security, 
 DevExperience, CostEfficiency, Pedagogy extends Quality {}
-
 
 // Comprehensive Technology Stack definition
 sig TechnologyStack {
@@ -74,6 +65,96 @@ sig TechnologyStack {
     overallQualities: set Quality
 }
 
+
+// =============================================================================
+// Compatibility Constraints
+// =============================================================================
+
+// Define the compatibility between technologies
+pred isFullStackCompatible[t : TechnologyStack] {
+    // Frontend-Backend compatibility
+    (some c: Compatibility | {
+        c.tech1 = t.frontend and c.tech2 = t.backend and c.compatible = True
+    }) and
+
+    // Frontend-Database compatibility
+    (some c: Compatibility | {
+        c.tech1 = t.frontend and c.tech2 = t.database and c.compatible = True
+    })and
+
+    // Frontend-ORM compatibility
+    (some c: Compatibility | {
+        c.tech1 = t.frontend and c.tech2 = t.orm and c.compatible = True
+    }) and
+
+    // Frontend-Authorization compatibility
+    (some c: Compatibility | {
+          c.tech1 = t.frontend and c.tech2 = t.auth and c.compatible = True
+    }) and
+
+    // Backend-Database compatibility
+    (some c: Compatibility | {
+        c.tech1 = t.backend and c.tech2 = t.database and c.compatible = True
+    }) and
+
+    // Backend-ORM compatibility
+    (some c: Compatibility | {
+        c.tech1 = t.backend and c.tech2 = t.orm and c.compatible = True
+    }) and
+
+    // Backend-Authorization compatibility
+    (some c: Compatibility | {
+        c.tech1 = t.backend and c.tech2 = t.auth and c.compatible = True
+    }) and
+
+    // Database-ORM compatibility
+    (some c: Compatibility | {
+        c.tech1 = t.database and c.tech2 = t.orm and c.compatible = True
+    }) 
+
+    // Database-Authorization compatibility
+
+    // Do not need to be compatible with each other as they do not interact directly
+    // (some c: Compatibility | {
+    //     c.tech1 = t.database and c.tech2 = t.auth and c.compatible = True
+    // }) and
+
+    // ORM-Authorization compatibility 
+    
+    // Do not need to be compatible with each other as they do not interact directly 
+    // (some c: Compatibility | {
+    //     c.tech1 = t.orm and c.tech2 = t.auth and c.compatible = True
+    // })
+}
+
+pred basicCompatibility {
+    // Compatibility is symmetric: if (A,B) is True, so is (B,A)
+    all c: Compatibility | {
+
+        c.compatible = True implies {
+
+            some c2: Compatibility | {
+                c2.tech1 = c.tech2 and c2.tech2 = c.tech1 and c2.compatible = True
+            }
+        }
+    }
+
+    // No tech is incompatible with itself: (T,T) must always be True
+    all t: Component | 
+        some c: Compatibility | 
+            c.tech1 = t and c.tech2 = t and c.compatible = True
+}
+
+
+// =============================================================================
+// Graphical Properties of the Technology Stack
+// =============================================================================
+
+
+
+// =============================================================================
+// Quality Attributes and their implications
+// =============================================================================
 
 pred exampleStack {
     // Define frontend-backend pairing
