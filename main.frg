@@ -7,12 +7,12 @@ option run_sterling "vis.js"
 // =============================================================================
 
 abstract sig Boolean {}
+
 one sig True, False extends Boolean {}
 
 abstract sig Component {}
 
 abstract sig Frontend, Backend, Database, ORM, Authorization  extends Component {}
-
 
 // =============================================================================
 // Specific Technology Instances
@@ -29,9 +29,6 @@ one sig Postgres, SQLDatabase, MongoDB, Redis, Firebase extends Database {}  // 
 one sig PrismaORM, DrizzleORM extends ORM {}         // e.g. Prisma ORM x
 
 one sig OAuth, FirebaseAuth, JWTAuth, Auth0, ClerkAuth extends Authorization {} // e.g. OAuth-based auth
-
-
-
 
 sig Compatibility {
   tech1: one Component, 
@@ -52,7 +49,7 @@ sig TechnologyStack {
     frontend: one Frontend,
     backend: one Backend,
     database: one Database,
-    orm: one ORM,
+    orm: lone ORM,  // ORM is optional
     auth: lone Authorization,  // Authentication is optional
     
     // Quality attributes for each pairing
@@ -151,6 +148,13 @@ pred basicCompatibility {
 // =============================================================================
 
 
+// Predicates for Transivitity 
+
+
+/*
+A graph specifying a structure is invalid if it breaks at least one relationship
+specified in any production.
+*/
 
 // =============================================================================
 // Quality Attributes and their implications
