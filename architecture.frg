@@ -102,30 +102,38 @@ run satisfiableInheritance for 5 Class // Run the model for 5 classes
 // Design Pattern Structure
 // =============================================================================
 
-sig Operation {}
+abstract sig Operation {}
+one sig Add, Remove, GetChild extends Operation {}
 
-sig Add, Remove, GetChild, Show extends Operation {}
+abstract sig Component {}
 
-sig Composite extends Class { 
-    operations: set Operation, // Operations of the composite
-    children: set Class // Children of the composite
+sig Leaf extends Component {}
+
+sig Composite extends Component {
+    children: set Component,    // composite holds references to sub-components
+    compOps: set Operation          // operations implemented by composite
 }
 
-sig Decorator extends Composite {
-    component: one Class // The component being decorated
+sig Decorator extends Component {
+  wraps: one Component,      // the component being decorated
+  decOps: set Operation         // supported operations (e.g., Show)
 }
+
+one sig Show extends Operation {}
 
 pred compositeStructure {
     some comp : Composite | {
         // A composite node must have Add, Remove, and GetChild operations
-        Add in comp.operations and
-        Remove in comp.operations and
-        GetChild in comp.operations
+        Add in comp.compOps and
+        Remove in comp.ops and
+        GetChild in comp.compOps
 
         // A composite node must have at least one child
         #comp.children > 0
     }
 }
+
+run compositeStructure for 5 Class // Run the model for 5 classes
 
 // Decorator Patter
 
@@ -133,15 +141,42 @@ pred decoratorStructure {
     // a Decorator must wrap exactly one component and implement the Show operation.
     some dec: Decorator | {
         // A decorator must have exactly one component
-        #dec.component = 1 and
+        #dec.wraps = 1 and
 
         // A decorator must implement the Show operation
         Show in dec.operations and
 
         // A decorator must have a reference to the component it decorates
-        dec.component in dec.children
+        dec.wraps in dec.children
     }
 }
+
+run decoratorStructure for 1 Class // Run the model for 5 classes
+
+// =============================================================================
+// Architectural Styles
+// =============================================================================
+
+
+
+// pred clientServerStyle {  
+//   exactly one s: Server |  
+//     all c: Client | connected[c][s]  
+// }
+
+
+// pred distributedStyle {  
+//   exactly one ctrl: ControlServer and some ds: DataServer |  
+//     all c: Client | connects[c][ctrl] and  
+//       some d: DataServer | connects[ctrl][d]  
+// }
+
+
+// // A directed acyclic chain of Task nodes connected by Str edges.
+// pred pipeFilterAcyclic[] {  
+//   no t: Task | t in t.*follows  
+// }
+
 
 // =============================================================================
 // Root-and-Hierarchy Integrity
