@@ -181,3 +181,53 @@ run decoratorStructure for 1 Class // Run the model for 5 classes
 // =============================================================================
 // Root-and-Hierarchy Integrity
 // =============================================================================
+
+// Production 15 (Initial State):
+// 1. Exactly 1 Root exists
+// 2. All top-level classes (classes with no parent class) descent from Root
+
+// Define properties of the special "root" of the graph, which is not a class 
+// in and of itself and is artificially introduced to facilitate verification
+// of graph structure
+one sig Root {
+    // set of top-level classes with no parent class
+    // that descend directly from artificial root of graph
+    topLevelClasses: set Class 
+}
+
+// A top level class that descends directly from root of graph
+// is one that has no parent class, i.e.
+pred hasNoParentClass[c: Class] {
+    // no parent class exists s.t. c is inherited from a parent class
+    no parent: Class | parent in c.inherits
+}
+
+// A special root node must connect to every top-level Class, i.e. every class 
+// without a parent class must be in the artificial root's set of top-level 
+// classes with no parent class
+pred rootConnectivity {
+    // if class c has no parent, then it must descend directly from the artificial
+    // root of the graph
+    all c: Class {
+        hasNoParentClass[c] implies (
+            c in Root.topLevelClasses
+        )
+    }
+    // if class c descends directly from the artificial root of the graph, then it
+    // must have no parent class
+    all c: Class {
+        c in Root.topLevelClasses immplies (
+            hasNoParentClass[c]
+        )
+    }
+}
+
+// Graph must maintain root-and-hierarchy integrity for it to be well-formed
+// and able to undergo verification, i.e. this predicate lists the predicates that
+// must hold true before the graph can be verified
+pred rootAndHierarchyIntegrity {
+    noSelfInheritance // no class inherits from itself
+    linearInheritance // a class should not inherit from its own subclass at any level
+    singleInheritance // every class has at most one parent
+    rootConnectivity // all classes with no parent class descend directly from root node
+}
