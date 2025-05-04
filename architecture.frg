@@ -184,7 +184,7 @@ run decoratorStructure for 1 Class // Run the model for 5 classes
 
 // Production 15 (Initial State):
 // 1. Exactly 1 Root exists
-// 2. All top-level classes (classes with no parent class) descent from Root
+// 2. All top-level classes (classes with no parent class) descend from Root
 
 // Define properties of the special "root" of the graph, which is not a class 
 // in and of itself and is artificially introduced to facilitate verification
