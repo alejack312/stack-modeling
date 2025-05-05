@@ -64,10 +64,6 @@ pred multipleInheritance {
 
 
 
-pred satisfiableInheritance {
-    classExists and noSelfInheritance and linearInheritance and noRedundantInheritance and (
-        singleInheritance or multipleInheritance) // At least one class exists and no self-inheritance and inheritance is not symmetric
-}
 
 /*
     In UML, the generalization specifics a hierarchical relationship between a
@@ -89,11 +85,15 @@ pred generalization {
         Productions 10 and 13, single inheritance and multiple inheritance, 
         demonstrate the generalization.
     */
+    
+    // At least one class exists and no self-inheritance and inheritance is not symmetric
+    classExists and noSelfInheritance and linearInheritance and noRedundantInheritance and (
+        singleInheritance or multipleInheritance) 
 }
 
 
 
-run satisfiableInheritance for 5 Class // Run the model for 5 classes
+run generalization for 5 Class // Run the model for 5 classes
 
 // =============================================================================
 // Association and Multiplicity Constraints
@@ -192,11 +192,17 @@ pred distributedStyle {
     }  
 }
 
+sig Task {
+    follows: set Task // Set of tasks that follow this task
+}
+
+
+
 
 // // A directed acyclic chain of Task nodes connected by Str edges.
-// pred pipeFilterAcyclic[] {  
-//   no t: Task | t in t.*follows  
-// }
+pred pipeFilterAcyclic {  
+  no t: Task | t in t.*follows  
+}
 
 
 // =============================================================================
