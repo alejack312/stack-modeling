@@ -1,10 +1,14 @@
 #lang forge
 
 
+abstract sig Classifier {} // Abstract parent for Class and Interface
+
 sig Class {
     // Define properties of the class
     inherits: set Class // Inheritance relationship
 }
+
+sig Interface extends Classifier {} // Define Interface signature
 
 
 // =============================================================================
@@ -51,7 +55,6 @@ pred singleInheritance {
 }
 
 
-
 /* 
     Production 13
 
@@ -84,17 +87,81 @@ pred satisfiableInheritance {
     linked from most general to most specific. 
 */
 pred generalization { 
-    /* How do we maintain the generalization hierarchy? */
+    /* 
+        How do we maintain the generalization hierarchy? 
+    
+        Productions 10 and 13, single inheritance and multiple inheritance, 
+        demonstrate the generalization.
+    */
 }
 
-
-
-run satisfiableInheritance for 5 Class // Run the model for 5 classes
+//run satisfiableInheritance for 5 Class 
 
 // =============================================================================
 // Association and Multiplicity Constraints
 // =============================================================================
 
+// The types of associations allowed between Classes
+abstract sig AssociationType {}
+one sig Association, Aggregation, Composition extends AssociationType {} 
+
+// The Association relation definition 
+sig Associate {
+    src: one Classifier,    // Source of the association
+    dst: one Classifier,    // Destination of the association
+    type: lone AssociationType // Type of the association
+}
+
+// Interface Attachment
+pred interfaceMultiplicity {
+    all i: Interface | one c: Class | {
+        // Assumes attachment is represented by an Associate where Interface is src and Class is dst
+        some a: Associate | (a.src = i and a.dst = c) or (a.src = c and a.dst = i) 
+    }
+}
+
+// Valid Association Types
+pred validAssociations {
+    all a: Associate | {
+        // If an association has one of the specified types
+        a.type in Association + Aggregation + Composition implies {
+            //then both its source and destination must be Classes.
+            a.src in Class and a.dst in Class
+        }
+        // If src or dst is an Interface, type must be empty?
+        (a.src in Interface or a.dst in Interface) implies no a.type
+    }
+}
+
+// Predicate to prevent self-associations
+pred noSelfAssociation {
+    no a: Associate | a.src = a.dst
+}
+
+// Predicate to prevent direct Interface-to-Interface associations
+pred noInterfaceToInterfaceAssociation {
+    no a: Associate | a.src in Interface and a.dst in Interface
+}
+
+// Predicate to prevent fully redundant association atoms
+pred noRedundantAssociationAtoms {
+    all disj a1, a2: Associate | not (
+        a1.src = a2.src and
+        a1.dst = a2.dst and
+        a1.type = a2.type // Comparing types (lone sigs/atoms are comparable)
+    )
+}
+
+
+pred validAssociationModel {
+   interfaceMultiplicity // and//
+//   validAssociations and
+//   noSelfAssociation and
+//   noInterfaceToInterfaceAssociation and
+//   noRedundantAssociationAtoms
+}
+
+run validAssociationModel for 3 Class, 2 Interface, 10 Associate
 
 
 
@@ -105,12 +172,13 @@ run satisfiableInheritance for 5 Class // Run the model for 5 classes
 abstract sig Operation {}
 one sig Add, Remove, GetChild extends Operation {}
 
-abstract sig Component {}
+abstract sig Component {
+    children: set Component   // composite holds references to sub-components
+}
 
 sig Leaf extends Component {}
 
 sig Composite extends Component {
-    children: set Component,    // composite holds references to sub-components
     compOps: set Operation          // operations implemented by composite
 }
 
@@ -125,7 +193,7 @@ pred compositeStructure {
     some comp : Composite | {
         // A composite node must have Add, Remove, and GetChild operations
         Add in comp.compOps and
-        Remove in comp.ops and
+        Remove in comp.compOps and
         GetChild in comp.compOps
 
         // A composite node must have at least one child
@@ -133,7 +201,7 @@ pred compositeStructure {
     }
 }
 
-run compositeStructure for 5 Class // Run the model for 5 classes
+//run compositeStructure for 5 Class // Run the model for 5 classes
 
 // Decorator Patter
 
@@ -144,40 +212,53 @@ pred decoratorStructure {
         #dec.wraps = 1 and
 
         // A decorator must implement the Show operation
-        Show in dec.operations and
+        Show in dec.decOps and
 
         // A decorator must have a reference to the component it decorates
         dec.wraps in dec.children
     }
 }
 
-run decoratorStructure for 1 Class // Run the model for 5 classes
+//run decoratorStructure for 1 Class // Run the model for 5 classes
 
 // =============================================================================
 // Architectural Styles
 // =============================================================================
 
+sig Client {
+    // Define properties of the client
+    connects: set Server // Set of servers connected to this client
+}
+
+sig Server {
+    // Define properties of the server
+    connected: set Client // Set of clients connected to this server
+}
+
+pred clientServerStyle {  
+    one s: Server |  { 
+        all c: Client | c in s.connected
+    }
+}
 
 
-// pred clientServerStyle {  
-//   exactly one s: Server |  
-//     all c: Client | connected[c][s]  
-// }
+sig ControlServer, DataServer extends Server {}
 
+pred distributedStyle {  
+    one ctrl: ControlServer | some ds: DataServer | {
+        all c: Client | {
+            (c in ctrl.connected) and 
 
-// pred distributedStyle {  
-//   exactly one ctrl: ControlServer and some ds: DataServer |  
-//     all c: Client | connects[c][ctrl] and  
-//       some d: DataServer | connects[ctrl][d]  
-// }
+        (some d: DataServer | connects[ctrl][d]  )
+
+        }
+    }  
+}
 
 
 // // A directed acyclic chain of Task nodes connected by Str edges.
 // pred pipeFilterAcyclic[] {  
 //   no t: Task | t in t.*follows  
-// }
-
-
-// =============================================================================
+// }=============================================================================
 // Root-and-Hierarchy Integrity
 // =============================================================================
