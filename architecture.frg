@@ -233,4 +233,4 @@ pred rootAndHierarchyIntegrity {
     rootConnectivity // all classes with no parent class descend directly from root node
 }
 
-run rootAndHierarchyIntegrity for exactly 5 Class
+rootAndHierarchyIntegrityRun: run rootAndHierarchyIntegrity for exactly 5 Class
