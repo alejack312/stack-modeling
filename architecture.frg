@@ -89,7 +89,7 @@ pred generalization {
 
 
 
-run satisfiableInheritance for 5 Class // Run the model for 5 classes
+// run satisfiableInheritance for 5 Class // Run the model for 5 classes
 
 // =============================================================================
 // Association and Multiplicity Constraints
@@ -125,7 +125,7 @@ pred compositeStructure {
     some comp : Composite | {
         // A composite node must have Add, Remove, and GetChild operations
         Add in comp.compOps and
-        Remove in comp.ops and
+        Remove in comp.compOps and
         GetChild in comp.compOps
 
         // A composite node must have at least one child
@@ -133,7 +133,7 @@ pred compositeStructure {
     }
 }
 
-run compositeStructure for 5 Class // Run the model for 5 classes
+// run compositeStructure for 5 Class // Run the model for 5 classes
 
 // Decorator Patter
 
@@ -144,14 +144,14 @@ pred decoratorStructure {
         #dec.wraps = 1 and
 
         // A decorator must implement the Show operation
-        Show in dec.operations and
+        Show in dec.decOps and
 
         // A decorator must have a reference to the component it decorates
         dec.wraps in dec.children
     }
 }
 
-run decoratorStructure for 1 Class // Run the model for 5 classes
+//run decoratorStructure for 1 Class // Run the model for 5 classes
 
 // =============================================================================
 // Architectural Styles
@@ -204,7 +204,7 @@ pred hasNoParentClass[c: Class] {
 
 // A special root node must connect to every top-level Class, i.e. every class 
 // without a parent class must be in the artificial root's set of top-level 
-// classes with no parent class
+// classes (ones with no parent class)
 pred rootConnectivity {
     // if class c has no parent, then it must descend directly from the artificial
     // root of the graph
@@ -216,7 +216,7 @@ pred rootConnectivity {
     // if class c descends directly from the artificial root of the graph, then it
     // must have no parent class
     all c: Class {
-        c in Root.topLevelClasses immplies (
+        c in Root.topLevelClasses implies (
             hasNoParentClass[c]
         )
     }
@@ -229,5 +229,8 @@ pred rootAndHierarchyIntegrity {
     noSelfInheritance // no class inherits from itself
     linearInheritance // a class should not inherit from its own subclass at any level
     singleInheritance // every class has at most one parent
+    noRedundantInheritance // no class inherits from both a parent and grandparent simultaneously
     rootConnectivity // all classes with no parent class descend directly from root node
 }
+
+run rootAndHierarchyIntegrity for exactly 5 Class
