@@ -322,6 +322,7 @@ pred compositeStructure {
 
 // run compositeStructure for 5 Class // Run the model for 5 classes
 
+
 // Decorator Patter
 
 pred decoratorStructure {
