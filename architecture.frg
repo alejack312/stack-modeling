@@ -74,10 +74,7 @@ pred multipleInheritance {
 
 
 
-pred satisfiableInheritance {
-    classExists and inheritanceConstraints and (
-        singleInheritance or multipleInheritance) // At least one class exists and no self-inheritance and inheritance is not symmetric
-}
+
 
 /*
     In UML, the generalization specifics a hierarchical relationship between a
@@ -93,8 +90,20 @@ pred satisfiableInheritance {
     linked from most general to most specific. 
 */
 
+pred generalization { 
+    /* 
+        How do we maintain the generalization hierarchy? 
+    
+        Productions 10 and 13, single inheritance and multiple inheritance, 
+        demonstrate the generalization.
+    */
+    
+    // At least one class exists and no self-inheritance and inheritance is not symmetric
+    classExists and noSelfInheritance and linearInheritance and noRedundantInheritance and (
+        singleInheritance or multipleInheritance) 
+}
 
-//run satisfiableInheritance for 5 Class 
+
 
 
 // =============================================================================
@@ -117,7 +126,9 @@ pred interfaceMultiplicity {
     all i: Interface | some i.implementer  
 }
 
-runInterfaceMultiplicity : run { interfaceMultiplicity and inheritanceConstraints }for 2 Class, 1 Interface // Run the model for 2 classes and 1 interface
+runInterfaceMultiplicity : run { interfaceMultiplicity and inheritanceConstraints } for 2 Class, 1 Interface // Run the model for 2 classes and 1 interface
+
+run generalization for 5 Class // Run the model for 5 classes
 
 
 // =============================================================================
@@ -363,10 +374,19 @@ pred distributedStyle {
     }  
 }
 
+sig Task {
+    follows: set Task // Set of tasks that follow this task
+}
+
+
+
 
 // // A directed acyclic chain of Task nodes connected by Str edges.
-// pred pipeFilterAcyclic[] {  
-//   no t: Task | t in t.*follows  
-// }=============================================================================
+pred pipeFilterAcyclic {  
+  no t: Task | t in t.*follows  
+}
+
+
+// =============================================================================
 // Root-and-Hierarchy Integrity
 // =============================================================================
