@@ -223,9 +223,9 @@ reflectiveAssociationRun : run { reflectiveAssociation and inheritanceConstraint
     Production 7: Standard Association
 */
 pred validAssociations {
-    all r: Association | {
+    all a: Association | {
         // The source and destination of the association must be different classes
-        (r.src != r.dst)
+        (a.src != a.dst)
     }
 }
 
@@ -239,23 +239,72 @@ runValidAssociations : run { validAssociations and inheritanceConstraints} for 2
 /*
     Production 8: Aggregation
 */
-pred validAggregation {
-    all r: Association | {
+pred aggregationConstraints {
+    all agg: Aggregation | {
         // The source and destination of the aggregation must be different classes 
-        (r.src != r.dst)
+        (agg.src != agg.dst)
     }
-
+    all disj agg1, agg2: Aggregation | {
+        // Distinct aggregations must differ in either the source or target class
+        // such that there are no parallel/duplicate aggregation edges, i.e. at most
+        // 1 edge between any two nodes
+        (agg1.src != agg2.src) or (agg1.dst != agg2.dst)
+    }
+    no disj agg1, agg2: Aggregation | {
+        // Aggregation relationships cannot be mutual such that tge relationship can
+        // be directly reversed to form another aggregation relationship, i.e. if A "has"
+        // B, then it cannot be true that B "has" A
+        (agg1.src = agg2.dst) and (agg2.src = agg1.dst)
+    }
+    no c: Class | {
+        // A class in an aggregation relationship cannot ultimately reach itself
+        c in c.^(Aggregation.src->Aggregation.dst)
+    }
 }
 
-runValidAggregation : run { validAggregation and inheritanceConstraints} for 2 Class, 1 Aggregation // Run the model for 3 classes and 2 associations
+runValidAggregation : run { aggregationConstraints and inheritanceConstraints} for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association // Run the model for 3 classes and 2 associations
 
 /*
     Production 9: Composition
 */
-pred validComposition {
-    all r: Association | {
+pred compositionConstraints {
+    all comp: Composition | {
         // The source and destination of the composition must be different classes
-        (r.src != r.dst)
+        (comp.src != comp.dst)
+    }
+    all cl: Class | {
+        // if a class is a destination in any composition relationship, it must be the 
+        // destination of exactly one composition
+        (some comp: Composition | comp.dst = cl) implies (
+            one comp: Composition | comp.dst = cl
+        )
+    }
+    all disj comp1, comp2: Composition | {
+        // Distinct compositions must differ in either the source or target class
+        // such that there are no parallel/duplicate composition edges, i.e. at most
+        // 1 edge between any two nodes
+        (comp1.src != comp2.src) or (comp1.dst != comp2.dst)
+    }
+    no disj comp1, comp2: Composition | {
+        // Composition relationships cannot be mutual such that the relationship can
+        // be directly reversed to form another composition relationship, i.e. if A "owns"
+        // B, then it cannot be true that B "owns" A
+        (comp1.src = comp2.dst) and (comp2.src = comp1.dst)
+    }
+    no c: Class | {
+        // A class in a composition relationship cannot ultimately reach itself
+        c in c.^(Composition.src->Composition.dst)
+    }
+}
+
+runValidComposition : run { compositionConstraints and inheritanceConstraints} for exactly 3 Class, exactly 2 Composition, exactly 2 Association // Run the model for 3 classes and 2 associations
+
+/*
+    
+*/
+pred noAggregationCompositionOverlap {
+    all agg: Aggregation, comp: Composition | {
+        not (agg.src = comp.src and agg.dst = comp.dst)
     }
 }
 
