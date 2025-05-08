@@ -80,10 +80,10 @@ pred pipeFilterStructure {
     s1.src = s2.src and s1.dst = s2.dst implies s1 = s2
   }
 
-  // // Every Task except the *last* in the chain must have at least one outgoing stream
+  // Every Task except the *last* in the chain must have at least one outgoing stream
   all t: Task | (some follows[t]) iff (some s: Str | s.src = t)
 
-  // // Every Task except the *first* must have at least one incoming stream
+  // Every Task except the *first* must have at least one incoming stream
   all t: Task | (some (~follows)[t]) iff (some s: Str | s.dst = t)
 }
 
@@ -119,23 +119,28 @@ pred pipeFilterFeedback {
 
 runPipeFilterFeedback : run pipeFilterFeedback for 7 Str, 6 Task
 
-sig Before {
-  streamsB: set Str
-}
-sig After {
-  streamsA: set Str
-}
+
 
 
 // ────────────────────────────────────────────────────────────
 // CAPSTONE : Transformation Predicate
 // ────────────────────────────────────────────────────────────
+
+sig Before {
+  streamsB: set Str,
+  tasksB: set Task
+}
+sig After {
+  streamsA: set Str,
+  tasksA: set Task
+}
+
 pred transformPF[b: Before, a: After] {
   // The universe of tasks is unchanged:
-  Task = Task
+  #b.tasksB = #a.tasksA and (all t: b.tasksB | t in a.tasksA)
 
   // Before has no feedback:
-  all s: b.streamsB | s.src != s.dst
+  no t: b.tasksB | t in t.^(follows)
 
   // There is exactly one new Str f in the After state:
   some f: Str |
@@ -150,7 +155,7 @@ pred transformPF[b: Before, a: After] {
 // ────────────────────────────────────────────────────────────
 // We give Forge a small universe and ask it to build
 // a Before/After pair satisfying the transformPF rule.
-run {
+runTransformPF: run {
   some b: Before, a: After | transformPF[b, a]
 } for exactly 5 Task, exactly 6 Str, exactly 1 Before, exactly 1 After
 
@@ -169,12 +174,14 @@ run {
 
 // “Before” snapshot: classic client–server
 sig BC {         // “Before Clients”
+  clientBC : set Client, // Clients in the before snapshot
   ctrlB: one Ctrl,
   dsB:   set Data
 }
 
 // “After” snapshot: distributed control–data
 sig AC {         // “After Clients”
+  clientAC : set Client, // Clients in the after snapshot
   ctrlA: one Ctrl,
   dsA:   set Data
 }
@@ -195,7 +202,9 @@ pred transform {
     (b.ctrlB = a.ctrlA) implies (no b.dsB and some a.dsA)
   
     // Number of clients must be the same in both snapshots
+    #b.clientBC = #a.clientAC and (all c: b.clientBC | c in a.clientAC)
   }
 }
 
-runTransform : run transform for exactly 0 Task, 0 Str, 0 Client, exactly 4 BC, exactly 4 AC
+runTransform : run transform for exactly 1 BC, exactly 1 AC, exactly 5 Client, exactly 1 Ctrl, exactly 2 Data // Run the model for 5 clients and 5 servers
+// Run the model for 5 clients and 5 servers

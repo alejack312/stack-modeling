@@ -202,6 +202,10 @@ runInterfacesOnly : run {
     interfacesOnly and inheritanceConstraints 
 } for exactly 5 Class, 5 Interface // Run the model for 5 classes and 2 interfaces
 
+
+/*
+    TODO: Make sure to check fields as well.
+*/
 pred resolution {
     all c: Class |
         // If LeftWins: choose the first parent that does not inherit from any other parent
@@ -218,13 +222,17 @@ pred resolution {
     &&  (c.policy = RequireOverride) implies (
             all p1, p2: c.inherits |
               p1 != p2 implies (
-                let shared = p1.methodsC & p2.methodsC |
-                  all m: shared | m in c.methodsC
+                // Design Check: What do we want to include in the class methods?
+                let notShared = p1.methodsC - p2.methodsC |
+                  all m: notShared | m in c.methodsC
+
+                // let shared = p1.methodsC & p2.methodsC |
+                //   all m: shared | m in c.methodsC
               )
         )
       // If MergeAll: subclass automatically includes all methods of all parents
     &&  (c.policy = MergeAll) implies (
-            all p: c.inherits | p.methodsC in c.methodsC
+            all p: c.inherits | (p.methodsC in c.methodsC) and (p.fieldsC in c.fieldsC)
         )
 }
 
