@@ -210,24 +210,26 @@ pred resolution {
     all c: Class |
         // If LeftWins: choose the first parent that does not inherit from any other parent
         (c.policy = LeftWins) implies (
-        some p: c.inherits |
-                all q: c.inherits | parentOrder[c][p] <= parentOrder[c][q]
+            (some p: c.inherits | 
+                all q: c.inherits | parentOrder[c][p] <= parentOrder[c][q] =>
+                p.methodsC in c.methodsC and p.fieldsC in c.fieldsC)
         )
       // If RightWins: choose the last parent that does not inherit from any other parent
     &&  (c.policy = RightWins) implies (
-        some p: c.inherits |
-                all q: c.inherits | parentOrder[c][p] >= parentOrder[c][q]  
+        (some p: c.inherits |
+                all q: c.inherits | parentOrder[c][p] >= parentOrder[c][q] =>
+                p.methodsC in c.methodsC and p.fieldsC in c.fieldsC)
         )
       // If RequireOverride: subclass must declare its own methods for any inherited conflict
+      
     &&  (c.policy = RequireOverride) implies (
             all p1, p2: c.inherits |
               p1 != p2 implies (
                 // Design Check: What do we want to include in the class methods?
+                // If Parent1 and Parent2 both have foo, and Child inherits from both with RequireOverride, 
+                // then foo must be in Child.methodsC.
                 let notShared = p1.methodsC - p2.methodsC |
-                  all m: notShared | m in c.methodsC
-
-                // let shared = p1.methodsC & p2.methodsC |
-                //   all m: shared | m in c.methodsC
+                   all m: notShared | m in c.methodsC
               )
         )
       // If MergeAll: subclass automatically includes all methods of all parents

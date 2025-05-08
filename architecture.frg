@@ -174,14 +174,12 @@ runTransformPF: run {
 
 // “Before” snapshot: classic client–server
 sig BC {         // “Before Clients”
-  clientBC : set Client, // Clients in the before snapshot
   ctrlB: one Ctrl,
   dsB:   set Data
 }
 
 // “After” snapshot: distributed control–data
 sig AC {         // “After Clients”
-  clientAC : set Client, // Clients in the after snapshot
   ctrlA: one Ctrl,
   dsA:   set Data
 }
@@ -202,9 +200,8 @@ pred transform {
     (b.ctrlB = a.ctrlA) implies (no b.dsB and some a.dsA)
   
     // Number of clients must be the same in both snapshots
-    #b.clientBC = #a.clientAC and (all c: b.clientBC | c in a.clientAC)
+    #BC = #AC
   }
 }
 
-runTransform : run transform for exactly 1 BC, exactly 1 AC, exactly 5 Client, exactly 1 Ctrl, exactly 2 Data // Run the model for 5 clients and 5 servers
-// Run the model for 5 clients and 5 servers
+runTransform : run transform for exactly 4 BC, exactly 4 AC
