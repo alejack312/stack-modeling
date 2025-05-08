@@ -47,10 +47,7 @@ test suite for inheritanceModel {
             (some m: Method | {
                 m in p1.methodsC and m in p2.methodsC and m not in c.methodsC
             })
-        }) 
-    
-         
-        
+        })  
     } is sat
 
     // 13. Resolution policy: MergeAll includes all parent methods
