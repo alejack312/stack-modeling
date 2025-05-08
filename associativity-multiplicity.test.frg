@@ -189,9 +189,9 @@ test suite for validAssociations {
         for 2 Class, 1 Association
 }
 
-pred constraintPredicates{
-        associationConstraints and validAssociations and aggregationConstraints and inheritanceConstraints
-    }
+pred aggregationConstraintPredicates{
+    associationConstraints and validAssociations and aggregationConstraints and inheritanceConstraints
+}
 
 test suite for aggregationConstraints {
 
@@ -211,13 +211,13 @@ test suite for aggregationConstraints {
     }
 
     //Asserting aggregationConstraints is satisfiable, the source and destination of the aggregation are not reversed
-    testAgggregationUnSat: 
-    assert aggregationConstraints is unsat for 2 Class, 2 Association, 2 Aggregation
+    testAggregationSat: 
+    assert aggregationConstraintPredicates is sat for 2 Class, 2 Association, 2 Aggregation
     
 
     // Example: InValid interpretation of aggregationConstraints
     example testAggregationConstraintsImproper is {
-        aggregationConstraints
+        not aggregationConstraints
     } for {
         Class = `C1 + `C2
         Association = `agg1 + `agg2
@@ -232,15 +232,15 @@ test suite for aggregationConstraints {
 
 
     //Asserting aggregationConstraints is unsatisfiable, the source and destination of the aggregation cannot be reversed
-    testAgggregationUnSat: 
-    assert all disj a1, a2: Aggregation| not (
+    testAggregationUnSat: 
+    assert (some disj a1, a2: Aggregation| (
         a1.src = a2.dst and a2.src = a1.dst
-    ) is necessary for constraintPredicates for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association
+    )) and aggregationConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association
 
     //Example: A class in an aggregation relationship cannot ultimately reach itself
 
     example testAggregationConstraintsSelfReach is {
-        aggregationConstraints
+        not aggregationConstraints
     } for {
         Class = `C
         Association = `agg1
@@ -252,6 +252,8 @@ test suite for aggregationConstraints {
 
     //Self reachability is unsatisfiable, the source and destination of the aggregation cannot be the same
     testSelfReachUnsat:
-    assert aggregationConstraints is unsat for 2 Class, 1 Association, 1 Aggregation
+    assert (some a1: Aggregation| (
+        a1.src = a1.dst
+    )) and aggregationConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association
 }
 

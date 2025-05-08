@@ -92,12 +92,12 @@ runValidAssociations : run { validAssociations and associationConstraints and in
     Production 8: Aggregation
 */
 pred aggregationConstraints {
-    no disj agg1, agg2: Aggregation | {
-        // Aggregation relationships cannot be mutual such that the relationship can
-        // be directly reversed to form another aggregation relationship, i.e. if A "has"
-        // B, then it cannot be true that B "has" A
-        (agg1.src = agg2.dst) and (agg2.src = agg1.dst)
-    }
+    // no disj agg1, agg2: Aggregation | {
+    //     // Aggregation relationships cannot be mutual such that the relationship can
+    //     // be directly reversed to form another aggregation relationship, i.e. if A "has"
+    //     // B, then it cannot be true that B "has" A
+    //     (agg1.src = agg2.dst) and (agg2.src = agg1.dst)
+    // }
     no c: Class | {
         // A class in an aggregation relationship cannot ultimately reach itself
         c in c.^(Aggregation.src->Aggregation.dst)
