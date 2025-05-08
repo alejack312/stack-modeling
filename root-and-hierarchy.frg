@@ -1,5 +1,6 @@
 #lang forge 
 
+open "inheritance.frg"
 // =============================================================================
 // Root-and-Hierarchy Integrity
 // =============================================================================
@@ -14,32 +15,32 @@
 one sig Root {
     // set of top-level classes with no parent class
     // that descend directly from artificial root of graph
-    topLevelClasses: set Class 
+    topLevelSimpleClasses: set SimpleClass 
 }
 
 // A top level class that descends directly from root of graph
 // is one that has no parent class, i.e.
-pred hasNoParentClass[c: Class] {
+pred hasNoParentSimpleClass[c: SimpleClass] {
     // no parent class exists s.t. c is inherited from a parent class
-    no parent: Class | parent in c.inherits
+    no parent: SimpleClass | parent in c.inherits
 }
 
-// A special root node must connect to every top-level Class, i.e. every class 
+// A special root node must connect to every top-level SimpleClass, i.e. every class 
 // without a parent class must be in the artificial root's set of top-level 
 // classes (ones with no parent class)
 pred rootConnectivity {
     // if class c has no parent, then it must descend directly from the artificial
     // root of the graph
-    all c: Class {
-        hasNoParentClass[c] implies (
-            c in Root.topLevelClasses
+    all c: SimpleClass {
+        hasNoParentSimpleClass[c] implies (
+            c in Root.topLevelSimpleClasses
         )
     }
     // if class c descends directly from the artificial root of the graph, then it
     // must have no parent class
-    all c: Class {
-        c in Root.topLevelClasses implies (
-            hasNoParentClass[c]
+    all c: SimpleClass {
+        c in Root.topLevelSimpleClasses implies (
+            hasNoParentSimpleClass[c]
         )
     }
 }
@@ -54,4 +55,4 @@ pred rootAndHierarchyIntegrity {
     rootConnectivity // all classes with no parent class descend directly from root node
 }
 
-rootAndHierarchyIntegrityRun: run rootAndHierarchyIntegrity for exactly 5 Class
+rootAndHierarchyIntegrityRun: run rootAndHierarchyIntegrity for exactly 5 SimpleClass
