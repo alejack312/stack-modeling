@@ -189,6 +189,7 @@ test suite for validAssociations {
         for 2 Class, 1 Association
 }
 
+// Helper predicate to check combine aggregation constraints with association and inheritance constraints as done in the implementation file
 pred aggregationConstraintPredicates{
     associationConstraints and validAssociations and aggregationConstraints and inheritanceConstraints
 }
@@ -255,5 +256,100 @@ test suite for aggregationConstraints {
     assert (some a1: Aggregation| (
         a1.src = a1.dst
     )) and aggregationConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association
+}
+
+// Helper predicate to check combine composition constraints with association and inheritance constraints as done in the implementation file
+
+pred compositionConstraintPredicates { associationConstraints and validAssociations and compositionConstraints and inheritanceConstraints}
+
+test suite for compositionConstraints {
+
+    //Example: Valid interpretation of compositionConstraints -- destination uniqueness and exclusivity
+
+    example destinationUniquenessProper is {
+        compositionConstraints
+    } for {
+        Class = `C1 + `C2 + `C3 + `C4
+        Association = `comp1_C1_C2 + `comp2_C3_C4
+        Composition = `comp1_C1_C2 + `comp2_C3_C4
+
+        `comp1_C1_C2.src = `C1
+        `comp1_C1_C2.dst = `C2
+
+        `comp2_C3_C4.src = `C3
+        `comp2_C3_C4.dst = `C4
+        
+        }
+    
+    //Asserting conposition constraints are satisfiable, no mutual compositions, no cycles.
+    testCompositionSat: 
+    assert aggregationConstraintPredicates is sat for 2 Class, 2 Association, 2 Aggregation
+
+    //Example: invalid interpretation of compositionConstraints -- destination uniqueness and exclusivity C3 is destination of two compositions (from C1 and C2)
+
+    example destinationUniquenessImproper is {
+        not compositionConstraints
+    } for {
+        Class = `C1 + `C2 + `C3
+        Association = `comp1_C1_C3 + `comp2_C2_C3
+        Composition = `comp1_C1_C3 + `comp2_C2_C3
+
+        `comp1_C1_C3.src = `C1
+        `comp1_C1_C3.dst = `C3
+
+        `comp2_C2_C3.src = `C2
+        `comp2_C2_C3.dst = `C3
+    }
+
+    //Asserting aggregationConstraints is unsatisfiable, the destination of two compositions cannot be the same 
+    destinationUnSat: 
+    assert (some disj c1, c2: Composition| (
+        c1.dst = c2.dst and c2.src != c1.src
+    )) and compositionConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation
+
+    // Example: Invalid - Mutual composition (C1 composes C2, C2 composes C1)
+    example testCompositionConstraintsImproper_MutualComposition is {
+        not compositionConstraints
+    } for {
+        Class = `C1 + `C2
+        Association = `comp1_C1_C2 + `comp2_C2_C1
+        Composition = `comp1_C1_C2 + `comp2_C2_C1
+
+        `comp1_C1_C2.src = `C1
+        `comp1_C1_C2.dst = `C2
+
+        `comp2_C2_C1.src = `C2
+        `comp2_C2_C1.dst = `C1
+    }
+
+    //Asserting aggregationConstraints is unsatisfiable, the destination of two compositions cannot be the same 
+    mutualityUnSat: 
+    assert (some disj c1, c2: Composition| (
+        c1.src = c2 and c2.src = c1 and c1.dst = c2 and c2.dst = c1
+    )) and compositionConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation
+
+    // Example: Invalid - Composition cycle (C1 -> C2 -> C3 -> C1)
+    example testCompositionConstraintsacyclicle is {
+        not compositionConstraints
+    } for {
+        Class = `C1 + `C2 + `C3
+        Association = `comp1_C1_C2 + `comp2_C2_C3 + `comp3_C3_C1
+        Composition = `comp1_C1_C2 + `comp2_C2_C3 + `comp3_C3_C1
+
+        `comp1_C1_C2.src = `C1
+        `comp1_C1_C2.dst = `C2
+
+        `comp2_C2_C3.src = `C2
+        `comp2_C2_C3.dst = `C3
+
+        `comp3_C3_C1.src = `C3
+        `comp3_C3_C1.dst = `C1
+    }
+
+    // Asserting that the existence of a composition cycle is unsatisfiable when compositionConstraintPredicates must hold
+    cyclicityUnSat: 
+    assert (some c: Class | c in c.^(Composition.src->Composition.dst))
+        and compositionConstraintPredicates is unsat for exactly 3 Class, exactly 3 Association, exactly 3 Composition
+
 }
 
