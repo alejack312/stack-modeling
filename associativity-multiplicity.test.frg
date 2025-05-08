@@ -226,7 +226,8 @@ test suite for aggregationConstraints {
     example testAggregationConstraintsProper is {
         aggregationConstraints
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
         Association = `agg1 + `agg2
         Aggregation = `agg1 + `agg2
 
@@ -239,14 +240,15 @@ test suite for aggregationConstraints {
 
     //Asserting aggregationConstraints is satisfiable, the source and destination of the aggregation are not reversed
     testAggregationSat: 
-    assert aggregationConstraintPredicates is sat for 2 Class, 2 Association, 2 Aggregation
+    assert aggregationConstraintPredicates is sat for 2 AbstractClass, 2 SimpleClass, 2 Association, 2 Aggregation
     
 
     // Example: InValid interpretation of aggregationConstraints
     example testAggregationConstraintsImproper is {
         not aggregationConstraints
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
         Association = `agg1 + `agg2
         Aggregation = `agg1 + `agg2
 
@@ -262,14 +264,15 @@ test suite for aggregationConstraints {
     testAggregationUnSat: 
     assert (some disj a1, a2: Aggregation| (
         a1.src = a2.dst and a2.src = a1.dst
-    )) and aggregationConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association
+    )) and aggregationConstraintPredicates is unsat for exactly 3 AbstractClass, 3 SimpleClass, exactly 2 Aggregation, exactly 2 Association
 
     //Example: A class in an aggregation relationship cannot ultimately reach itself
 
     example testAggregationConstraintsSelfReach is {
         not aggregationConstraints
     } for {
-        Class = `C
+        AbstractClass = `C
+        SimpleClass = `C
         Association = `agg1
         Aggregation = `agg1
 
@@ -281,7 +284,7 @@ test suite for aggregationConstraints {
     testSelfReachUnsat:
     assert (some a1: Aggregation| (
         a1.src = a1.dst
-    )) and aggregationConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association
+    )) and aggregationConstraintPredicates is unsat for exactly 3 AbstractClass, 3 SimpleClass, exactly 2 Aggregation, exactly 2 Association
 }
 
 // Helper predicate to check combine composition constraints with association and inheritance constraints as done in the implementation file
@@ -295,7 +298,8 @@ test suite for compositionConstraints {
     example destinationUniquenessProper is {
         compositionConstraints
     } for {
-        Class = `C1 + `C2 + `C3 + `C4
+        AbstractClass = `C1 + `C2 + `C3 + `C4
+        SimpleClass = `C1 + `C2 + `C3 + `C4
         Association = `comp1_C1_C2 + `comp2_C3_C4
         Composition = `comp1_C1_C2 + `comp2_C3_C4
 
@@ -309,14 +313,15 @@ test suite for compositionConstraints {
     
     //Asserting conposition constraints are satisfiable, no mutual compositions, no cycles.
     testCompositionSat: 
-    assert aggregationConstraintPredicates is sat for 2 Class, 2 Association, 2 Aggregation
+    assert aggregationConstraintPredicates is sat for 2 AbstractClass, 2 SimpleClass, 2 Association, 2 Aggregation
 
     //Example: invalid interpretation of compositionConstraints -- destination uniqueness and exclusivity C3 is destination of two compositions (from C1 and C2)
 
     example destinationUniquenessImproper is {
         not compositionConstraints
     } for {
-        Class = `C1 + `C2 + `C3
+        AbstractClass = `C1 + `C2 + `C3
+        SimpleClass = `C1 + `C2 + `C3
         Association = `comp1_C1_C3 + `comp2_C2_C3
         Composition = `comp1_C1_C3 + `comp2_C2_C3
 
@@ -331,13 +336,14 @@ test suite for compositionConstraints {
     destinationUnSat: 
     assert (some disj c1, c2: Composition| (
         c1.dst = c2.dst and c2.src != c1.src
-    )) and compositionConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation
+    )) and compositionConstraintPredicates is unsat for exactly 3 AbstractClass, exactly 3 SimpleClass, exactly 2 Aggregation
 
     // Example: Invalid - Mutual composition (C1 composes C2, C2 composes C1)
     example testCompositionConstraintsImproper_MutualComposition is {
         not compositionConstraints
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
         Association = `comp1_C1_C2 + `comp2_C2_C1
         Composition = `comp1_C1_C2 + `comp2_C2_C1
 
@@ -352,13 +358,14 @@ test suite for compositionConstraints {
     mutualityUnSat: 
     assert (some disj c1, c2: Composition| (
         c1.src = c2 and c2.src = c1 and c1.dst = c2 and c2.dst = c1
-    )) and compositionConstraintPredicates is unsat for exactly 3 Class, exactly 2 Aggregation
+    )) and compositionConstraintPredicates is unsat for exactly 3 AbstractClass, exactly 3 SimpleClass, exactly 2 Aggregation
 
     // Example: Invalid - Composition cycle (C1 -> C2 -> C3 -> C1)
     example testCompositionConstraintsacyclicle is {
         not compositionConstraints
     } for {
-        Class = `C1 + `C2 + `C3
+        AbstractClass = `C1 + `C2 + `C3
+        SimpleClass = `C1 + `C2 + `C3
         Association = `comp1_C1_C2 + `comp2_C2_C3 + `comp3_C3_C1
         Composition = `comp1_C1_C2 + `comp2_C2_C3 + `comp3_C3_C1
 
@@ -374,7 +381,7 @@ test suite for compositionConstraints {
 
     // Asserting that the existence of a composition cycle is unsatisfiable when compositionConstraintPredicates must hold
     cyclicityUnSat: 
-    assert (some c: Class | c in c.^(Composition.src->Composition.dst))
-        and compositionConstraintPredicates is unsat for exactly 3 Class, exactly 3 Association, exactly 3 Composition
+    assert (some c: AbstractClass | c in c.^(Composition.src->Composition.dst))
+        and compositionConstraintPredicates is unsat for exactly 3 AbstractClass, exactly 3 SimpleClass, exactly 3 Association, exactly 3 Composition
 
 }

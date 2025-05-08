@@ -170,7 +170,7 @@ runNoAggregationCompositionOverlap: run { associationConstraints and validAssoci
     as a class can neither contain itself (with itself being able to exist independently of itself) as in
     an Aggregation, nor can a class own itself as in a Composition.
 */
-pred reflextiveAssociations {
+pred reflectiveAssociations {
     // An association must be reflexive, meaning that it can be traversed in both directions.
     
     all a : Association | {
