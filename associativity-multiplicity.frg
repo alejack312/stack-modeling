@@ -7,19 +7,21 @@ open "inheritance.frg" // Import the inheritance model
 // =============================================================================
 
 
+
 sig Association {
-    src: one Class,    // Source of the relationship
+    src: one Class,  // Source of the relationship
     dst: one Class   // Destination of the relationship
 }
 
 sig Aggregation extends Association {
-    // Aggregation implies a relationship where the child can exist independently
-    // of the parent.
+    // Aggregation implies a relationship where the child can exist independently of the parent.
 } 
 
 sig Composition extends Association {
-    // Composition implies a relationship where the child cannot exist 
-    // independent of the parent.
+    // Composition implies a relationship where the child cannot exist independent of the parent.
+
+
+
 } // Define Aggregation and Composition as subtypes of Association
 
 // Valid Association Types
@@ -35,7 +37,7 @@ pred noInterfaceToInterfaceAssociation {
     no a: Association | a.src in Interface and a.dst in Interface
 }
 
-// // Predicate to prevent fully redundant association atoms
+// Predicate to prevent fully redundant association atoms
 pred noRedundantAssociationAtoms {
     all disj a1, a2: Association | not (
         a1.src = a2.src and
@@ -46,10 +48,17 @@ pred noRedundantAssociationAtoms {
 /*
     Production 4: Association Constraints
 
+    Validates that associations between classes are structurally well-formed, i.e. no direct
+    associations between 2 Interface nodes and no 2 distinct Association instances connect the
+    same pair of classes in the same direction (aka no parallel/redundant association edges)
 
+    NOTE: Does not specify the type of association that is permitted, i.e. standard/valid or 
+    reflexive, which are handled by Production 7 and Production 14, respectively.
 */
 pred associationConstraints { 
     noInterfaceToInterfaceAssociation and noRedundantAssociationAtoms
+
+    
     /*
         TODO: Add a check that asserts that two Associations do not have the same source and destination.
         This is to prevent redundant association atoms. (this is covered by validAssociations already)
@@ -57,15 +66,8 @@ pred associationConstraints {
         TODO: Check to see if a Association can have its source be one class 
         and its destination be the child of that class. (yes, since this is not specified by definition for associations
         and is covered by acyclicity clauses for aggregations and compositions)
-    
-
     */
-    
 }
-
-
-// The Association relation definition 
-
 
 /*
     Production 7: Standard Association
@@ -80,24 +82,22 @@ pred validAssociations {
 }
 
 /*
-    NOTE: If the number of the number of classes divided by the number of 
-    association modulo 2 is not equal to 0, then we need to ensure that a class 
-    does not have more than one association.
+    NOTE: If the number of the number of classes divided by the number of association modulo 2 is not equal to 0, 
+    then we need to ensure that a class does not have more than one association.
 */
 runValidAssociations : run { validAssociations and associationConstraints and inheritanceConstraints} for 2 Class, 1 Association // Run the model for 3 classes and 2 associations
-
 
 
 /*
     Production 8: Aggregation
 */
 pred aggregationConstraints {
-    no disj agg1, agg2: Aggregation | {
-        // Aggregation relationships cannot be mutual such that the relationship can
-        // be directly reversed to form another aggregation relationship, i.e. if A "has"
-        // B, then it cannot be true that B "has" A
-        (agg1.src = agg2.dst) and (agg2.src = agg1.dst)
-    }
+    // no disj agg1, agg2: Aggregation | {
+    //     // Aggregation relationships cannot be mutual such that the relationship can
+    //     // be directly reversed to form another aggregation relationship, i.e. if A "has"
+    //     // B, then it cannot be true that B "has" A
+    //     (agg1.src = agg2.dst) and (agg2.src = agg1.dst)
+    // }
     no c: Class | {
         // A class in an aggregation relationship cannot ultimately reach itself
         c in c.^(Aggregation.src->Aggregation.dst)
@@ -155,23 +155,11 @@ runNoAggregationCompositionOverlap: run { associationConstraints and validAssoci
     We need to assert at the very least that an Aggregation relationship and 
     a Composition relationship do NOT share the same source and destination.
 
-
     Verify is it is possible or not to have two classes hold an Aggregation
     and Composition relationship when the source and destination of the two are
     flipped.
 */
 
-
-pred validAssociationModel {
-// associationExists and
-   interfaceMultiplicity // and//
-//   validAssociations and
-//   noSelfAssociation and
-//   noInterfaceToInterfaceAssociation and
-//   noRedundantAssociationAtoms
-}
-
-// run validAssociationModel for 3 Class, 2 Interface, 10 Association
 
 /*
     Production 14: Reflective Association
@@ -182,7 +170,7 @@ pred validAssociationModel {
     as a class can neither contain itself (with itself being able to exist independently of itself) as in
     an Aggregation, nor can a class own itself as in a Composition.
 */
-pred reflectiveAssociations {
+pred reflextiveAssociations {
     // An association must be reflexive, meaning that it can be traversed in both directions.
     
     all a : Association | {
@@ -193,4 +181,5 @@ pred reflectiveAssociations {
 
 // This is using Aggregation and Composition as well as Association. This is 
 // a valid production.
-reflectiveAssociationsRun : run { reflectiveAssociations and associationConstraints and inheritanceConstraints} for 1 Class, 1 Association  // Run the model for 1 class and 1 association 
+reflextiveAssociationsRun : run { reflextiveAssociations and associationConstraints and inheritanceConstraints} for 1 Class, 1 Association  // Run the model for 1 class and 1 association 
+
