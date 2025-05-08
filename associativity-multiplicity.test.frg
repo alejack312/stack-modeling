@@ -1,7 +1,8 @@
 #lang forge
 
+open "inheritance.frg"
 open "associativity-multiplicity.frg"
-open "inheritance.frg" // Import the inheritance model
+
 
 test suite for noSelfAssociation {
 
@@ -9,7 +10,9 @@ test suite for noSelfAssociation {
     example testNoSelfAssociationProper is { 
         all a: Association | noSelfAssociation
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
+
         Association = `a
         `a.src = `C1
         `a.dst = `C2
@@ -19,14 +22,16 @@ test suite for noSelfAssociation {
     example testNoSelfAssociationImproper is { 
         all a: Association | not noSelfAssociation
     } for {
-        Class = `C
+        AbstractClass = `C
+        SimpleClass = `C
+
         Association = `a
         `a.src = `C
         `a.dst = `C
     }
 
     // Assert: src != dst is necessary for noSelfAssociation
-    testNoSelfAssociationAssert: assert all a: Association | (a.src != a.dst) is necessary for noSelfAssociation for 2 Class, 1 Association
+    testNoSelfAssociationAssert: assert all a: Association | (a.src != a.dst) is necessary for noSelfAssociation for 2 SimpleClass, 1 Association
 }
 
 test suite for noInterfaceToInterfaceAssociation {
@@ -35,7 +40,9 @@ test suite for noInterfaceToInterfaceAssociation {
     example testNoInterfaceToInterfaceAssociationProper is { 
         all a: Association | noInterfaceToInterfaceAssociation
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
+
         Association = `a
         `a.src = `C1
         `a.dst = `C2
@@ -57,7 +64,9 @@ test suite for noRedundantAssociationAtoms {
     example testNoRedundantAssociationAtomsProper is {
         noRedundantAssociationAtoms
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
+
         Association = `a1 + `a2
 
         `a1.src = `C1
@@ -71,7 +80,9 @@ test suite for noRedundantAssociationAtoms {
     example testNoRedundantAssociationAtomsImproper is {
         not noRedundantAssociationAtoms
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
+
         Association = `a1 + `a2
 
         `a1.src = `C1
@@ -82,17 +93,20 @@ test suite for noRedundantAssociationAtoms {
 
     // Assert: the predicate is satisfiable when there are no redundant atoms
     testNoRedundantSat:
-    assert noRedundantAssociationAtoms is sat for 2 Class, 2 Association
+
+    assert noRedundantAssociationAtoms is sat for 2 SimpleClass, 2 Association
 
     // Assert: parallel edges are impossible under the predicate
     testNoRedundantUnsat:
-    assert some disj a1, a2: Association | (a1.src = a2.src and a1.dst = a2.dst) and noRedundantAssociationAtoms is unsat for 2 Class, 2 Association
+    assert some disj a1, a2: Association | (a1.src = a2.src and a1.dst = a2.dst) and noRedundantAssociationAtoms is unsat for 2 SimpleClass, 2 Association
+
 
     // Assert: absence of parallel edges is necessary for the predicate
     testNoRedundantNecessary:
     assert all disj a1, a2: Association | not (a1.src = a2.src and a1.dst = a2.dst)
         is necessary for noRedundantAssociationAtoms
-        for 2 Class, 2 Association
+
+        for 2 SimpleClass, 2 Association
 }
 
 test suite for associationConstraints {
@@ -101,7 +115,9 @@ test suite for associationConstraints {
     example testAssociationConstraintsProper is {
         associationConstraints
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
+
         Association = `a1 + `a2
 
         `a1.src = `C1
@@ -114,7 +130,10 @@ test suite for associationConstraints {
     example testAssociationConstraintsRedundantImproper is {
         not associationConstraints
     } for {
-        Class = `C1 + `C2
+
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
+
         Association = `a1 + `a2
 
         `a1.src = `C1
@@ -153,7 +172,8 @@ test suite for associationConstraints {
     assert all disj a1, a2: Association | not (
         a1.src = a2.src and a1.dst = a2.dst
     ) is necessary for associationConstraints
-        for 2 Class, 2 Association
+        for 2 SimpleClass, 2 Association
+
 }
 
 test suite for validAssociations {
@@ -162,7 +182,9 @@ test suite for validAssociations {
     example testValidAssociationsProper is {
         validAssociations
     } for {
-        Class = `C1 + `C2
+        AbstractClass = `C1 + `C2
+        SimpleClass = `C1 + `C2
+
         Association = `a
         `a.src = `C1
         `a.dst = `C2
@@ -172,7 +194,8 @@ test suite for validAssociations {
     example testValidAssociationsImproper is {
         not validAssociations
     } for {
-        Class = `C
+        AbstractClass = `C
+        SimpleClass = `C
         Association = `a
         `a.src = `C
         `a.dst = `C
@@ -180,14 +203,17 @@ test suite for validAssociations {
 
     // Assert: validAssociations is satisfiable when all src != dst
     testValidAssociationsSat:
-    assert validAssociations is sat for 2 Class, 1 Association
+    assert validAssociations is sat for 2 SimpleClass, 1 Association
+
 
     // Assert: src != dst is necessary for validAssociations
     testValidAssociationsNecessary:
     assert all a: Association | (a.src != a.dst)
         is necessary for validAssociations
-        for 2 Class, 1 Association
+
+        for 2 SimpleClass, 1 Association
 }
+
 
 // Helper predicate to check combine aggregation constraints with association and inheritance constraints as done in the implementation file
 pred aggregationConstraintPredicates{
@@ -352,4 +378,3 @@ test suite for compositionConstraints {
         and compositionConstraintPredicates is unsat for exactly 3 Class, exactly 3 Association, exactly 3 Composition
 
 }
-

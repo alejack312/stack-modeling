@@ -17,7 +17,7 @@ test suite for compositeStructure {
     // Checks that for every Composite, there is some Class that implements its interface
     assert {
         compositeStructure and (all comp: Composite | {
-            some c: Class | #c.implements = 1 and c.implements = comp.implementsC
+            some c: AbstractClass | #c.implements = 1 and c.implements = comp.implementsC
         })
     } is sat
     
@@ -115,7 +115,7 @@ test suite for decoratorStructure {
     assert {decoratorStructure and (all dec: Decorator | dec.implementsD = dec.wraps.implements)} is sat
     
     // Checks that every Decorator wraps a Class
-    assert {decoratorStructure and (all dec: Decorator | dec.wraps in Class)} is sat
+    assert {decoratorStructure and (all dec: Decorator | dec.wraps in AbstractClass)} is sat
     
     // Checks that Decorators do not wrap Composites or Leafs
     assert {decoratorStructure and (all dec: Decorator | dec.wraps not in Composite + Leaf)} is sat
@@ -134,7 +134,8 @@ example compositeValid is {compositeStructure} for {
     Composite = `Comp0
     Leaf = `Leaf0
     Component = `Comp0 + `Leaf0
-    Class = `Class0
+    AbstractClass = `Class0
+    SimpleClass = `Class0
     Interface = `Iface0
     Add = `Add0
     Remove = `Remove0
@@ -151,7 +152,8 @@ example compositeInvalidSelfChild is {not compositeStructure} for {
     Composite = `Comp0
     Leaf = `Leaf0
     Component = `Comp0 + `Leaf0
-    Class = `Class0
+    AbstractClass = `Class0
+    SimpleClass = `Class0
     Interface = `Iface0
     Add = `Add0
     Remove = `Remove0
@@ -170,7 +172,8 @@ example compositeInvalidSelfChild is {not compositeStructure} for {
 example decoratorValid is {decoratorStructure} for {
     Decorator = `Dec0
     Component = `Dec0
-    Class = `Class0
+    AbstractClass = `Class0
+    SimpleClass = `Class0
     Interface = `Iface0
     Show = `Show0
     Add = `Add0
@@ -186,7 +189,8 @@ example decoratorValid is {decoratorStructure} for {
 example decoratorInvalidSelfWrap is {not decoratorStructure} for {
     Decorator = `Dec0
     Component = `Dec0
-    Class = `Dec0 + `Class0
+    AbstractClass = `Dec0 + `Class0
+    SimpleClass = `Dec0 + `Class0
     Interface = `Iface0
     Show = `Show0
     Add = `Add0
