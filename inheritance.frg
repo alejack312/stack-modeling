@@ -70,10 +70,17 @@ pred inheritanceConstraints {
     noSelfInheritance and linearInheritance and noRedundantInheritance
 
     // No class should inherit from a class that implements the same interface
+    // all disj c1, c2: AbstractClass | {
+    //     c1 in c2.inherits implies {
+    //         (some i : Interface | i in c1.implements and not (i in c2.implements))
+    //     }
+    // }
     all disj c1, c2: AbstractClass | {
-        c1 in c2.inherits implies {
-            some i : Interface | i in c1.implements and not (i in c2.implements) 
-        }
+        (some Interface) implies (
+            (c1 in c2.inherits) implies (
+                some i: Interface | i in c1.implements and not (i in c2.implements)
+            )
+        )
     }
 }
 
@@ -123,7 +130,7 @@ pred generalization {
         singleInheritance or multipleInheritance) 
 }
 
-runGeneralization : run generalization for exactly 5 AbstractClass // Run the model for 5 classes
+runGeneralization : run generalization for exactly 5 SimpleClass, exactly 5 AbstractClass // Run the model for 5 classes
 
 /*
     Production 6: One Interface per AbstractClass
@@ -149,7 +156,7 @@ pred interfaceMultiplicity {
 */
 runInterfaceMultiplicity : run { 
     interfaceMultiplicity and inheritanceConstraints 
-} for 2 AbstractClass, 1 Interface // Run the model for 2 classes and 1 interface
+} for exactly 2 AbstractClass, exactly 2 SimpleClass, 1 Interface // Run the model for 2 classes and 1 interface
 
 // ============================================================================
 // CAPSTONE : Resolutions for Multiple Inheritance
@@ -178,7 +185,7 @@ pred interfacesOnly {
 
     not multipleInheritance // No multiple inheritance of classes
 
-    (all c : ExtendedClass | {
+    (all c : AbstractClass | {
         c.inherits = c.inherits - c.implements // ExtendedClasses cannot inherit from interfaces
 
         c.implements = c.implements - c.inherits // Interfaces cannot inherit from classes
@@ -191,7 +198,7 @@ pred interfacesOnly {
     }) 
 
     // No class implements an interface that is implemented by any of its ancestors
-    all c: ExtendedClass | no (c.implements & (c.^inherits).implements)
+    all c: AbstractClass | no (c.implements & (c.^inherits).implements)
 }
 
 /*
@@ -204,7 +211,7 @@ pred interfacesOnly {
 
 runInterfacesOnly : run {
     interfacesOnly and inheritanceConstraints 
-} for exactly 5 ExtendedClass, 5 Interface // Run the model for 5 classes and 2 interfaces
+} for exactly 5 SimpleClass, exactly 5 AbstractClass, 5 Interface // Run the model for 5 classes and 2 interfaces
 
 
 /*
@@ -242,5 +249,5 @@ pred resolution {
 
 runResolution : run {
     resolution and inheritanceConstraints 
-} for exactly 5 ExtendedClass, 5 Interface
+} for exactly 5 ExtendedClass, exactly 5 AbstractClass, 5 Interface
 

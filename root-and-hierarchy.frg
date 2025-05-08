@@ -15,15 +15,18 @@ open "inheritance.frg"
 one sig Root {
     // set of top-level classes with no parent class
     // that descend directly from artificial root of graph
-    topLevelSimpleClasses: set SimpleClass 
+    topLevelClasses: set SimpleClass 
 }
 
 // A top level class that descends directly from root of graph
 // is one that has no parent class, i.e.
-pred hasNoParentSimpleClass[c: SimpleClass] {
+pred hasNoParentClass[c: SimpleClass] {
     // no parent class exists s.t. c is inherited from a parent class
     no parent: SimpleClass | parent in c.inherits
 }
+
+hasNoParentClassRun: run { some c: SimpleClass | hasNoParentClass[c] } 
+    for exactly 1 SimpleClass, 1 AbstractClass
 
 // A special root node must connect to every top-level SimpleClass, i.e. every class 
 // without a parent class must be in the artificial root's set of top-level 
@@ -32,27 +35,28 @@ pred rootConnectivity {
     // if class c has no parent, then it must descend directly from the artificial
     // root of the graph
     all c: SimpleClass {
-        hasNoParentSimpleClass[c] implies (
-            c in Root.topLevelSimpleClasses
+        hasNoParentClass[c] implies (
+            c in Root.topLevelClasses
         )
     }
     // if class c descends directly from the artificial root of the graph, then it
     // must have no parent class
     all c: SimpleClass {
-        c in Root.topLevelSimpleClasses implies (
-            hasNoParentSimpleClass[c]
+        c in Root.topLevelClasses implies (
+            hasNoParentClass[c]
         )
     }
 }
+
+rootConnectivityRun: run rootConnectivity for exactly 5 SimpleClass, exactly 5 AbstractClass
 
 // Graph must maintain root-and-hierarchy integrity for it to be well-formed
 // and able to undergo verification, i.e. this predicate lists the predicates that
 // must hold true before the graph can be verified
 pred rootAndHierarchyIntegrity {
-    
     inheritanceConstraints and // no class inherits from both a parent and grandparent simultaneously
     (singleInheritance or multipleInheritance) and // single or multiple inheritance
     rootConnectivity // all classes with no parent class descend directly from root node
 }
 
-rootAndHierarchyIntegrityRun: run rootAndHierarchyIntegrity for exactly 5 SimpleClass
+rootAndHierarchyIntegrityRun: run rootAndHierarchyIntegrity for exactly 5 SimpleClass, exactly 5 AbstractClass, exactly 0 Interface

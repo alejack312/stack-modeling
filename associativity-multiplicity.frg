@@ -8,8 +8,8 @@ open "inheritance.frg" // Import the inheritance model
 
 
 sig Association {
-    src: one Class,    // Source of the relationship
-    dst: one Class   // Destination of the relationship
+    src: one AbstractClass,    // Source of the relationship
+    dst: one AbstractClass   // Destination of the relationship
 }
 
 sig Aggregation extends Association {
@@ -84,7 +84,7 @@ pred validAssociations {
     association modulo 2 is not equal to 0, then we need to ensure that a class 
     does not have more than one association.
 */
-runValidAssociations : run { validAssociations and associationConstraints and inheritanceConstraints} for 2 Class, 1 Association // Run the model for 3 classes and 2 associations
+runValidAssociations : run { validAssociations and associationConstraints and inheritanceConstraints} for exactly 2 SimpleClass, exactly 1 Association, exactly 2 AbstractClass, exactly 0 Interface // Run the model for 3 classes and 2 associations
 
 
 
@@ -98,19 +98,19 @@ pred aggregationConstraints {
         // B, then it cannot be true that B "has" A
         (agg1.src = agg2.dst) and (agg2.src = agg1.dst)
     }
-    no c: Class | {
+    no c: AbstractClass | {
         // A class in an aggregation relationship cannot ultimately reach itself
         c in c.^(Aggregation.src->Aggregation.dst)
     }
 }
 
-runValidAggregation : run { associationConstraints and validAssociations and aggregationConstraints and inheritanceConstraints} for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association // Run the model for 3 classes and 2 associations
+runValidAggregation : run { associationConstraints and validAssociations and aggregationConstraints and inheritanceConstraints} for exactly 3 AbstractClass, exactly 3 SimpleClass, exactly 2 Aggregation, exactly 2 Association, exactly 0 Interface // Run the model for 3 classes and 2 associations
 
 /*
     Production 9: Composition
 */
 pred compositionConstraints {
-    all cl: Class | {
+    all cl: AbstractClass | {
         // if a class is a destination in any composition relationship, it must be the 
         // destination of exactly one composition and may not be the destination of an aggregation
         (some comp: Composition | comp.dst = cl) implies (
@@ -124,13 +124,13 @@ pred compositionConstraints {
         // B, then it cannot be true that B "owns" A
         (comp1.src = comp2.dst) and (comp2.src = comp1.dst)
     }
-    no c: Class | {
+    no c: AbstractClass | {
         // A class in a composition relationship cannot ultimately reach itself
         c in c.^(Composition.src->Composition.dst)
     }
 }
 
-runValidComposition : run { associationConstraints and validAssociations and compositionConstraints and inheritanceConstraints} for exactly 3 Class, exactly 2 Composition, exactly 2 Association // Run the model for 3 classes and 2 associations
+runValidComposition : run { associationConstraints and validAssociations and compositionConstraints and inheritanceConstraints} for exactly 3 AbstractClass, exactly 3 SimpleClass, exactly 2 Composition, exactly 2 Association, exactly 0 Interface // Run the model for 3 classes and 2 associations
 
 /*
     No overlap between Aggregation and Composition regardless of direction since Aggregation
@@ -148,7 +148,7 @@ pred noAggregationCompositionOverlap {
     }
 }
 
-runNoAggregationCompositionOverlap: run { associationConstraints and validAssociations and aggregationConstraints and compositionConstraints and inheritanceConstraints and noAggregationCompositionOverlap} for exactly 5 Class, exactly 2 Composition, exactly 2 Aggregation, exactly 5 Association
+runNoAggregationCompositionOverlap: run { associationConstraints and validAssociations and aggregationConstraints and compositionConstraints and inheritanceConstraints and noAggregationCompositionOverlap} for exactly 5 SimpleClass, exactly 5 AbstractClass, exactly 2 Composition, exactly 2 Aggregation, exactly 5 Association, exactly 0 Interface
 
 
 /*
@@ -160,18 +160,6 @@ runNoAggregationCompositionOverlap: run { associationConstraints and validAssoci
     and Composition relationship when the source and destination of the two are
     flipped.
 */
-
-
-pred validAssociationModel {
-// associationExists and
-   interfaceMultiplicity // and//
-//   validAssociations and
-//   noSelfAssociation and
-//   noInterfaceToInterfaceAssociation and
-//   noRedundantAssociationAtoms
-}
-
-// run validAssociationModel for 3 Class, 2 Interface, 10 Association
 
 /*
     Production 14: Reflective Association
@@ -193,4 +181,4 @@ pred reflectiveAssociations {
 
 // This is using Aggregation and Composition as well as Association. This is 
 // a valid production.
-reflectiveAssociationsRun : run { reflectiveAssociations and associationConstraints and inheritanceConstraints} for 1 Class, 1 Association  // Run the model for 1 class and 1 association 
+reflectiveAssociationsRun : run { reflectiveAssociations and associationConstraints and inheritanceConstraints} for exactly 1 SimpleClass, exactly 1 AbstractClass, exactly 1 Association, exactly 0 Interface  // Run the model for 1 class and 1 association 

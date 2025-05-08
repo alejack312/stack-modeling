@@ -32,13 +32,13 @@ sig Composite extends Component {
 */
 sig Decorator extends Component {
   implementsD: one Interface, // interfaces implemented by the decorator
-  wraps: one Class,      // the component being decorated
+  wraps: one AbstractClass,      // the component being decorated
   decOps: set Operation      // supported operations (e.g., Show)
 }
 
 pred compositeStructure {
     all comp : Composite | {
-        some c : Class | {
+        some c : AbstractClass | {
             #c.implements = 1
             c.implements = comp.implementsC 
         }
@@ -64,7 +64,7 @@ pred compositeStructure {
 
 runCompositeStructure : run {
     compositeStructure and inheritanceConstraints 
-} for exactly 1 Composite, exactly 1 Class, exactly 2 Component, exactly 1 Interface, exactly 0 Decorator
+} for exactly 1 Composite, exactly 1 SimpleClass, exactly 1 AbstractClass, exactly 2 Component, exactly 1 Interface, exactly 0 Decorator
 
 // Decorator Patter
 
@@ -74,7 +74,7 @@ pred decoratorStructure {
         // A decorator must have exactly one component
 
         // This class is the base object
-        some c : Class | {
+        some c : AbstractClass | {
             #c.implements = 1
             c.implements = dec.implementsD 
         }
@@ -96,5 +96,5 @@ pred decoratorStructure {
 
 runDecoratorStructure : run {
     decoratorStructure and inheritanceConstraints 
-} for exactly 1 Decorator, exactly 1 Class, exactly 1 Interface, exactly 0 Composite
+} for exactly 1 Decorator, exactly 1 SimpleClass, exactly 1 AbstractClass, exactly 1 Interface, exactly 0 Composite
     
