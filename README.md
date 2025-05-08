@@ -1,178 +1,115 @@
-#### Project Objective: What are you trying to model? Include a brief description that would give someone unfamiliar with the topic a basic understanding of your goal.
+Building Blocks: An Examination of the Graphical Properties of Software Architecture
+is a Logic for Systems project that examines properties of software architecture
+through a graph grammar. The project is heavily inspired by
 
-The goal of my project was to model technology stacks for software projects. Each stack includes various components (frontend, backend, database, ORM, authentication) along with relevant quality attributes like Speed, Security, and Reliability. In theory, by modeling these relationships, we can analyze tradeoffs and detect potential technological conflicts or limitations.
+## Project name
 
-#### Model Design and Visualization: Give an overview of your model design choices, what checks or run statements you wrote, and what we should expect to see from an instance produced by the Sterling visualizer. How should we look at and interpret an instance created by your spec? Did you create a custom visualization, or did you use the default?
+Building Blocks: An Examination of the Graphical Properties of Software Architecture
 
-The model is split into signatures for each component type (i.e. Frontend, Backend, Database) and predicates that capture how they interact or conflict. The default 
-Sterling visualizer displays each generated stack. The associated technologies and qualities have been assigned. I attempted to create a custom visualization, 
-however, I ran into issues getting it to work. The default visualization is 
-still useful and satisfactory for understanding the model. 
+### Inspiration
 
-#### Signatures and Predicates: At a high level, what do each of your sigs and preds represent in the context of the model? Justify the purpose for their existence and how they fit together.
+We have drawn heavy inspiration from and based our models off of the research
+paper, A Graph Grammar Approach to Software Architecture Verification and
+Transformation.
 
-abstract sig Component - Represents a generic software component (e.g., Frontend, Backend, Database).
+https://static.aminer.org/pdf/PDF/000/112/260/a_graph_grammar_approach_to_software_architecture_verification_and_transformation.pdf
 
-abstract sig Frontend extends Component - Represents a frontend technology (e.g., Next.js, React).
+### Collaborators
 
-abstract sig Backend extends Component - Represents a backend technology (e.g., Node.js, Python).
+ajacks41, ksam2, rmani1
 
-abstract sig Database extends Component - Represents a database technology (e.g., Postgres, MongoDB).
+### Online Resources
 
-abstract sig ORM extends Component - Represents an Object-Relational Mapping technology (e.g., Prisma, Drizzle).
+OpenAI. (2025) ChatGPT (**\_ ** Version)[Large Language Model] https://chat.openai.com/chat
 
-abstract sig Authorization extends Component - Represents an authentication technology (e.g., OAuth, JWT).
+### Time
 
-##### Frontends
-one sig NextJS extends Frontend - Represents a Next.js frontend.
+~25-30 hours per person.
 
-one sig ReactJS extends Frontend - Represents a React.js frontend.
+### GitHub Repo
 
-one sig Vite extends Frontend - Represents a Vite frontend.
+https://github.com/alejack312/stack-modeling/tree/main
 
-one sig Angular extends Frontend - Represents a Angular frontend.
+## Design choices
 
-one sig SvelteKit extends Frontend - Represents a SvelteKit frontend.
+**High-Level Design**
+Our project models software architecture styles and design patterns using Relational  
+Forge language. The codebase is organized around architectural styles
+(client-server, distributed, pipe-and-filter), inheritance and interface
+relationships, design patterns (composite, decorator), association/aggregation/composition
+relationships, and root and hierarchy structures.
 
-one sig VueJS extends Frontend - Represents a Vue.js frontend.
+Each architectural or design concept is represented as a set of signatures
+(sigs) and predicates that capture the structural and behavioral constraints of
+the style or pattern.
 
-##### Backends
-one sig PythonBackend extends Backend - Represents a Python backend.
+**Relationships between Sigs and Predicates**
 
-one sig NodeBackend extends Backend - Represents a Node.js backend.
+- Sigs represent the core entities in the architecture, such as `Class`,
+  `Interface`, `Client`, `Server`, `Data`, `Task`, `Str`, `Composite`, and `Decorator`.
+- Predicates encode the rules and constraints that define valid instances of these entities and their relationships. For example
+  `inheritanceConstraints` enforces valid inheritance hierarchies, `pipeFilterStructure` defines valid pipe-and-filter graphs, and `compositeStructure` encodes the composite design pattern.
+- Transformation predicates (e.g., `transform`, `transformPF`) model architectural rewrites, such as converting a client-server
+  architecture to a distributed one or adding feedback to a pipe-and-filter system.
 
-one sig JavaBackend extends Backend - Represents a Java backend.
+**Data Structures and Modeling Choices**
 
-one sig GoBackend extends Backend - Represents a Go backend.
+- We use sets and relations in sigs to model associations (e.g., `childrenC: set Component` in `Composite`, `ds: set Data` in `Client`).
+- Abstract sigs and inheritance are used to capture generalization (e.g., `abstract sig Server {}`, `one sig Ctrl extends Server {}`).
+- Functional and partial functional relations (e.g., `parentOrder: pfunc Class -> Int`) are used to model ordering and policies in inheritance.
+- The use of `one`, `set`, and `lone` multiplicities allows us to precisely control the allowed cardinalities in the model.
+- Predicates are composed modularly, so that constraints can be reused and combined for different runs and tests.
 
-one sig RubyBackend extends Backend - Represents a Ruby backend.
+## Notes and Design Choices from the Codebase
 
-##### Databases
-one sig Postgres extends Database - Represents a Postgres database.
+Throughout the codebase, we have included several notes and design checks to clarify modeling decisions and highlight important considerations:
 
-one sig SQLDatabase extends Database - Represents a SQL database.
+- **Interfaces and Implementers**: We chose to remove the implementer field from the Interface sig and instead let each Class sig have a set of interfaces it implements. This enables modeling multiple interface inheritance, as in Java, and avoids redundancy.
 
-one sig MongoDB extends Database - Represents a MongoDB database.
+- **Redundant Inheritance**: We identified and addressed the problem of redundant inheritance, where a class could inherit from both a parent and a grandparent simultaneously. The `noRedundantInheritance` predicate ensures that a class cannot inherit from both a parent and its ancestor, maintaining a clean hierarchy.
 
-one sig Redis extends Database - Represents a Redis database.
+- **Generalization Hierarchy**: The model enforces that inheritance relationships flow from general to specific, reflecting UML semantics. This is discussed in the comments for the `generalization` predicate.
 
-one sig Firebase extends Database - Represents a Firebase database.
+- **Interface Multiplicity**: The model restricts each class to implement at most one interface (or none), as specified in the `interfaceMultiplicity` predicate. This is based on a production from the referenced research paper.
 
-##### ORMs
-one sig PrismaORM extends ORM - Represents a Prisma ORM.
+- **Resolution Policies for Multiple Inheritance**: We explored different resolution policies (LeftWins, RightWins, RequireOverride, MergeAll) for handling method and field conflicts in multiple inheritance scenarios. The `resolution` predicate encodes these policies, and comments explain the intended behavior for each.
 
-one sig DrizzleORM extends ORM - Represents a Drizzle ORM.
+- **RequireOverride Policy**: For this policy, if two parents share a method, the subclass must declare its own version. This is explicitly noted in the comments, and the model enforces that the subclass's methodsC set must include the conflicting method.
 
-##### Authorizations
-one sig OAuth extends Authorization - Represents an OAuth authentication.
+- **Data Structures**: The use of sets, relations, and multiplicities (one, set, lone) is intentional to precisely capture associations, generalizations, and constraints in the architecture.
 
-one sig JWTAuth extends Authorization - Represents a JWT authentication.
+- **Transformation Modeling**: The transformation predicates are designed to model architectural rewrites, and comments clarify the need for per-client data links and the preservation of client counts across transformations.
 
-one sig FirebaseAuth extends Authorization - Represents a Firebase authentication.
+- **Testing and Modularity**: Predicates are composed modularly, and the codebase includes extensive test suites to ensure that each design choice and constraint is properly enforced and can be independently verified.
 
-one sig Auth0 extends Authorization - Represents an Auth0 authentication.
+These notes and design checks are present as comments in the `.frg` files and serve both as documentation and as a guide for future extensions or modifications to the model.
 
-one sig ClerkAuth extends Authorization - Represents a Clerk authentication.
+## Errors/Bugs
 
+**Reproduction Steps for Known Issues:**
 
-##### Quality Attributes
-abstract sig Quality - Represents a quality attribute for a component.
+- If a referenced field is not declared in a sig (e.g., using `dsB` in a predicate without declaring it in `BC`), Forge will report an "unbound identifier" error. To reproduce: remove or misspell a field in a sig and reference it in a predicate.
+- If the transformation predicates are unsatisfiable (e.g., due to missing Data instances or incorrect modeling of per-client data links), running the corresponding `run` command will fail to produce an instance. To reproduce: run `runTransform` with insufficient Data or without modeling per-client data links in `BC`/`AC`.
+- If the pipe-and-filter and client-server logic are not connected, removing one will not affect the other, but unsatisfiability may still occur due to unrelated modeling issues.
 
-one sig 
-  Scalability, 
-  Speed, 
-  Reliability, 
-  Maintainability, 
-  Security, 
-  DevExperience, 
-  CostEfficiency, 
-  Pedagogy 
-extends Quality - Represents a quality attribute for a component.
-=================================================================
+## Tests
 
-Comprehensive Technology Stack definition
-sig TechnologyStack {
-    // Components
-    frontend: one Frontend,
-    backend: one Backend,
-    database: one Database,
-    orm: one ORM,
-    auth: lone Authorization,  // Authentication is optional
-    
-    // Quality attributes for each pairing
-    frontendBackendQualities: set Quality,
-    backendDatabaseQualities: set Quality,
-    databaseORMQualities: set Quality,
-    authQualities: set Quality,
-    
-    // Overall qualities of the stack
-    overallQualities: set Quality
-} - Represents a technology stack with a frontend, backend, database, ORM, and optional authentication. Each component pairing has associated quality attributes. Overall,
-the stack has a set of quality attributes that is the union of all component pairings.
+**Testing Suites**
 
+- The codebase includes extensive test suites (see `architecture.test.frg`, `inheritance.test.frg`, `design-pattern.test.frg`) that
+  assert key properties of each architectural style, inheritance model, and design pattern.
+- Each test suite uses `assert` statements to check that the model admits valid instances and rejects invalid ones (e.g., no
+  self-inheritance, correct method resolution, valid composite/decorator structures).
+- Example instances are provided to illustrate both valid and invalid configurations for design patterns.
 
-The predicates in main.frg set the constraints for the model. 
+**How to Run the Tests**
 
-exampleStack - An example stack with a Next.js frontend, Node.js backend, Postgres database, Prisma ORM, and OAuth authentication. The stack has Speed, Scalability, and Security qualities.
+- Open the relevant `.frg` test file in the Forge IDE or compatible tool.
+- Use the `run` or `assert` commands provided in the test suites to check the model. For example, run `runClientServerArchitecture` or
+  the named test suites in the test files.
+- The output will indicate whether the assertions are satisfiable (valid) or unsatisfiable (invalid), helping to verify the correctness
+  of the model.
 
-allQualitiesImpossible - No stack can optimize for all quality attributes.
-
-validStacks - A stack is valid if it has a frontend, backend, database, ORM, and optional authentication.
-
-technologyQualityImplications - Certain technologies inherently provide certain quality attributes. For example, Next.js provides Speed and Developer Experience.
-
-qualityTradeoffs - Certain quality attributes are mutually exclusive. For example, a stack can't have both Speed and Reliability.
-
-qualityBudget - Each stack can have a maximum of 6 quality attributes.
-
-qualityPropagation - A stack's overall quality is the union of its component pairings.
-
-technologyConflicts - Certain technologies conflict with each other. For example, Vite is not paired with Postgres. 
-
-optimizedFor - Models a stack that is optimized for the given qualities.
-
-microservicesArchitecture - Models a stack that is optimized for a microservices architecture.
- 
-rapidPrototyping - Models a stack that is optimized for rapid prototyping.
-
-enterpriseArchitecture - Models a stack that is optimized for an enterprise architecture.
-
-ecommerceStack - Models a stack that is optimized for an ecommerce application.
-    
-contentStack - Models a stack that is optimized for a content management system. 
-
-realtimeStack - Models a stack that is optimized for a realtime application.
-
-evolutionPath - Models how two stacks evolve from one to the other.
-
-##### Assumptions
-- Assumption that users using Firebase are not using an ORM.
-- Assumption that any stack with authentication must include security as a quality attribute
-- Assumption that high speed compromises reliability
-- Assumption that strong developer experience reduces maintainability
-- Assumption pedagogical stacks can't optimize for both speed and scalability
-- Assumption that security features impact performance
-- Assumption that firebase inherently reduces overall security
-- Assumption that Vite frontend won't be paired with Postgres database due to a pedagogical focus
-- Assumption that Node/Go backends with Postgres can't optimize for both speed and reliability simultaneously
-- Assumption that no stack can optimize for all quality attributes
-- Assumption that there are a maximum of 6 quality attributes per stack
-- Assumption that component pairings have quality limits (3 for most, 2 for auth)
-- Assumption that specific technologies inherently provide certain qualities (e.g., NextJS provides Speed and DevExperience)
-- Assumption that architectural patterns require specific technology combinations
-- Assumption that every stack needs a frontend, backend, and database
-- Assumption that every component pairing must have at least one quality attribute
-
-#### Testing: What tests did you write to test your model itself? What tests did you write to verify properties about your domain area? Feel free to give a high-level overview of this.
-
-For a test suite, I wrote variety of assert statements that ensure that the model is working as intended. I wrote tests to ensure that each stack has the necessary components, that certain qualities and components must exist together, and that certain combinations are limited. The tests run automatically, and as with other projects, the tests
-will find a counterexample if a constraint is violated or a contradictory configuration is found.
-
-- Correctness tests (i.e. validStacks) ensure each stack has the necessary components.
-- Constraint tests (i.e. ecommerceStack) verify that certain qualities and components must
-exist together.
-
-- Tradeoff tests (i.e. qualityTradeoffs) confirm that certain combinations (Speed vs Reliability) are limited.
+For more details on the structure and usage of the model, see the comments and documentation within each `.frg` file.
 
 
-# stack-modeling
