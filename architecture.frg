@@ -1,495 +1,210 @@
 #lang forge
 
 
-abstract sig Classifier {} // Abstract parent for Class and Interface
-
-sig Class {
-    // Define properties of the class
-    inherits: set Class // Inheritance relationship
-}
-
-sig Interface extends Classifier {
-    implementer : one Class
-} // Define Interface signature
-
-
-// =============================================================================
-// Inheritance relationship
-// =============================================================================
-
-pred classExists {
-    some c: Class | #c.inherits > 0 // At least one class exists
-}
-
-
-// No class should inherit from itself
-pred noSelfInheritance {
-    no c : Class | c in c.inherits // No class should inherit from itself 
-}
-
-pred linearInheritance {
-    // A class should not inherit from its own subclass at any level
-    all c: Class | {
-        not (c in c.^inherits) // No class should inherit from its own subclass at any level
-    }
-}
-
-/*
-    NOTE! The following predicate is a solution to the problem of redundant inheritance.
-    Discuss how we came across this in the design process and how we solved it.
-*/
-pred noRedundantInheritance {
-    // A class should not inherit from its "parent" and its "grandparent" at the same time
-    
-    all c: Class | {
-        no p, a: Class |
-        p in c.inherits &&
-        a in p.^inherits &&     -- a is a true ancestor of p (one-or-more hops)
-        a in c.inherits
-    }
-}
-
-pred inheritanceConstraints {
-    noSelfInheritance and linearInheritance and noRedundantInheritance
-}
-
-// Production 10 which permits exactly one "p"-edge per subclass
-pred singleInheritance {
-    some c: Class | {
-        lone p : Class | p in c.inherits // Each class can have at most one parent
-    }
-}
-
-
-/* 
-    Production 13
-
-    Removing production 13 disallows multiple inheritance.
-*/
-pred multipleInheritance {
-    some c: Class | {
-        #c.inherits > 1 // Each class can have multiple parents
-    }
-}
-
-
-
-
-
-/*
-    In UML, the generalization specifics a hierarchical relationship between a
-    general description and a specific description. 
-
-    In the node-edge representation, a line, which links from the vertex labeled 
-    c in a Class node to the vertex labeled p in the other Class node, designates
-    the generalization relationship from the former class to the latter. In other
-    words, the vertex labeled c indicates the general class, and the vertex labeled
-    p denotes the specific class accordingly.
-
-    Generalization hierarchy should be maintained. Classes should always be 
-    linked from most general to most specific. 
-*/
-
-pred generalization { 
-    /* 
-        How do we maintain the generalization hierarchy? 
-    
-        Productions 10 and 13, single inheritance and multiple inheritance, 
-        demonstrate the generalization.
-    */
-    
-    // At least one class exists and no self-inheritance and inheritance is not symmetric
-    classExists and noSelfInheritance and linearInheritance and noRedundantInheritance and (
-        singleInheritance or multipleInheritance) 
-}
-
-
-
-
-// =============================================================================
-// Interfaces
-// =============================================================================
-
-
-/*
-    Production 6: One Interface per Class
-
-    To TEST:
-    A graph specifying structure is invalid if it breaks at least one relationship
-    specified in any production. For example, Production 6 in Figure 3 define one 
-    interface can only attach to one class. If an interface is designed to be 
-    related to more than one class, a parser can indicate a violation of 
-    Production 6. 
-
-*/
-pred interfaceMultiplicity {
-    all i: Interface | some i.implementer  
-}
-
-runInterfaceMultiplicity : run { interfaceMultiplicity and inheritanceConstraints } for 2 Class, 1 Interface // Run the model for 2 classes and 1 interface
-
-run generalization for 5 Class // Run the model for 5 classes
-
-
-// =============================================================================
-// Association and Multiplicity Constraints
-// =============================================================================
-
-
-
-sig Association {
-    src: one Class,  // Source of the relationship
-    dst: one Class   // Destination of the relationship
-}
-
-sig Aggregation extends Association {
-    // Aggregation implies a relationship where the child can exist independently
-    // of the parent.
-} 
-
-sig Composition extends Association {
-    // Composition implies a relationship where the child cannot exist 
-    // independent of the parent.
-
-
-
-} // Define Aggregation and Composition as subtypes of Association
-
-// Valid Association Types
-
-
-// Predicate to prevent self-associations
-pred noSelfAssociation {
-    no a: Association | a.src = a.dst
-}
-
-// Predicate to prevent direct Interface-to-Interface associations
-pred noInterfaceToInterfaceAssociation {
-    no a: Association | a.src in Interface and a.dst in Interface
-}
-
-// // Predicate to prevent fully redundant association atoms
-pred noRedundantAssociationAtoms {
-    all disj a1, a2: Association | not (
-        a1.src = a2.src and
-        a1.dst = a2.dst
-        // a1.type = a2.type // Comparing types (lone sigs/atoms are comparable)
-    )
-}
-
-/*
-    Production 4: Association Constraints
-
-    Validates that associations between classes are structurally well-formed, i.e. no direct
-    associations between 2 Interface nodes and no 2 distinct Association instances connect the
-    same pair of classes in the same direction (aka no parallel/redundant association edges)
-
-    NOTE: Does not specify the type of association that is permitted, i.e. standard/valid or 
-    reflexive, which are handled by Production 7 and Production 14, respectively.
-*/
-pred associationConstraints { 
-    noInterfaceToInterfaceAssociation and noRedundantAssociationAtoms
-
-    
-    /*
-        TODO: Add a check that asserts that two Associations do not have the same source and destination.
-        This is to prevent redundant association atoms. (this is covered by validAssociations already)
-
-        TODO: Check to see if a Association can have its source be one class 
-        and its destination be the child of that class. (yes, since this is not specified by definition for associations
-        and is covered by acyclicity clauses for aggregations and compositions)
-    
-
-    */
-}
-
-
-// The Association relation definition 
-
-/*
-    Production 7: Standard Association
-
-    Given an association, the source and destination of the association must be different classes.
-*/
-pred validAssociations {
-    all a: Association | {
-        // The source and destination of the association must be different classes
-        (a.src != a.dst)
-    }
-}
-
-/*
-    NOTE: If the number of the number of classes divided by the number of association modulo 2 is not equal to 0, 
-    then we need to ensure that a class does not have more than one association.
-*/
-runValidAssociations : run { validAssociations and associationConstraints and inheritanceConstraints} for 2 Class, 1 Association // Run the model for 3 classes and 2 associations
-
-
-/*
-    Production 8: Aggregation
-*/
-pred aggregationConstraints {
-    no disj agg1, agg2: Aggregation | {
-        // Aggregation relationships cannot be mutual such that the relationship can
-        // be directly reversed to form another aggregation relationship, i.e. if A "has"
-        // B, then it cannot be true that B "has" A
-        (agg1.src = agg2.dst) and (agg2.src = agg1.dst)
-    }
-    no c: Class | {
-        // A class in an aggregation relationship cannot ultimately reach itself
-        c in c.^(Aggregation.src->Aggregation.dst)
-    }
-}
-
-runValidAggregation : run { associationConstraints and validAssociations and aggregationConstraints and inheritanceConstraints} for exactly 3 Class, exactly 2 Aggregation, exactly 2 Association // Run the model for 3 classes and 2 associations
-
-/*
-    Production 9: Composition
-*/
-pred compositionConstraints {
-    all cl: Class | {
-        // if a class is a destination in any composition relationship, it must be the 
-        // destination of exactly one composition and may not be the destination of an aggregation
-        (some comp: Composition | comp.dst = cl) implies (
-            (one comp: Composition | comp.dst = cl) and
-            (no agg: Aggregation | agg.dst = cl)
-        )
-    }
-    no disj comp1, comp2: Composition | {
-        // Composition relationships cannot be mutual such that the relationship can
-        // be directly reversed to form another composition relationship, i.e. if A "owns"
-        // B, then it cannot be true that B "owns" A
-        (comp1.src = comp2.dst) and (comp2.src = comp1.dst)
-    }
-    no c: Class | {
-        // A class in a composition relationship cannot ultimately reach itself
-        c in c.^(Composition.src->Composition.dst)
-    }
-}
-
-runValidComposition : run { associationConstraints and validAssociations and compositionConstraints and inheritanceConstraints} for exactly 3 Class, exactly 2 Composition, exactly 2 Association // Run the model for 3 classes and 2 associations
-
-/*
-    No overlap between Aggregation and Composition regardless of direction since Aggregation
-    implies that the part/destination class can exist independently whereas a Composition
-    implies the opposite.
-*/
-pred noAggregationCompositionOverlap {
-    // No Aggregation and Composition may have the same src and dst Classes
-    all agg: Aggregation, comp: Composition | {
-        not (agg.src = comp.src and agg.dst = comp.dst)
-    }
-    // No Aggregation and Composition may have opposite/flipped src and dst Classes
-    all agg: Aggregation, comp: Composition | {
-        not (agg.src = comp.dst and agg.dst = comp.src)
-    }
-}
-
-runNoAggregationCompositionOverlap: run { associationConstraints and validAssociations and aggregationConstraints and compositionConstraints and inheritanceConstraints and noAggregationCompositionOverlap} for exactly 5 Class, exactly 2 Composition, exactly 2 Aggregation, exactly 5 Association
-
-
-/*
-    We need to assert at the very least that an Aggregation relationship and 
-    a Composition relationship do NOT share the same source and destination.
-
-
-    Verify is it is possible or not to have two classes hold an Aggregation
-    and Composition relationship when the source and destination of the two are
-    flipped.
-*/
-
-
-pred validAssociationModel {
-// associationExists and
-   interfaceMultiplicity // and//
-//   validAssociations and
-//   noSelfAssociation and
-//   noInterfaceToInterfaceAssociation and
-//   noRedundantAssociationAtoms
-}
-
-// run validAssociationModel for 3 Class, 2 Interface, 10 Association
-
-/*
-    Production 14: Reflective Association
-
-    Given an association, the source and destination of the association must be the same class.
-
-    NOTE: This constraint does not make much semantic sense for Aggregation or Composition relationships,
-    as a class can neither contain itself (with itself being able to exist independently of itself) as in
-    an Aggregation, nor can a class own itself as in a Composition.
-*/
-pred reflectiveAssociations {
-    // An association must be reflexive, meaning that it can be traversed in both directions.
-    
-    all a : Association | {
-        // The source and destination of the association must be the same class
-        (a.src = a.dst)
-    }
-}
-
-// This is using Aggregation and Composition as well as Association. This is 
-// a valid production.
-reflectiveAssociationsRun : run { reflectiveAssociations and associationConstraints and inheritanceConstraints} for 1 Class, 1 Association  // Run the model for 1 class and 1 association 
-
-
-// =============================================================================
-// Design Pattern Structure
-// =============================================================================
-
-abstract sig Operation {}
-one sig Add, Remove, GetChild extends Operation {}
-
-abstract sig Component {
-    children: set Component   // composite holds references to sub-components
-}
-
-sig Leaf extends Component {}
-
-sig Composite extends Component {
-    compOps: set Operation          // operations implemented by composite
-}
-
-sig Decorator extends Component {
-  wraps: one Component,      // the component being decorated
-  decOps: set Operation         // supported operations (e.g., Show)
-}
-
-one sig Show extends Operation {}
-
-pred compositeStructure {
-    some comp : Composite | {
-        // A composite node must have Add, Remove, and GetChild operations
-        Add in comp.compOps and
-        Remove in comp.compOps and
-        GetChild in comp.compOps
-
-        // A composite node must have at least one child
-        #comp.children > 0
-    }
-}
-
-// run compositeStructure for 5 Class // Run the model for 5 classes
-
-
-// Decorator Patter
-
-pred decoratorStructure {
-    // a Decorator must wrap exactly one component and implement the Show operation.
-    some dec: Decorator | {
-        // A decorator must have exactly one component
-        #dec.wraps = 1 and
-
-        // A decorator must implement the Show operation
-        Show in dec.decOps and
-
-        // A decorator must have a reference to the component it decorates
-        dec.wraps in dec.children
-    }
-}
-
-//run decoratorStructure for 1 Class // Run the model for 5 classes
-
 // =============================================================================
 // Architectural Styles
 // =============================================================================
 
+
+abstract sig Server {}
+
+one sig Ctrl extends Server {}
+    // Define properties of the control server 
+
+sig Data extends Server {}
+
+
 sig Client {
     // Define properties of the client
-    connects: set Server // Set of servers connected to this client
+    ctrl : one Ctrl, // Each client is associated with one control server
+    ds : set Data // Each client can be associated with multiple data servers
 }
 
-sig Server {
-    // Define properties of the server
-    connected: set Client // Set of clients connected to this server
-}
-
-pred clientServerStyle {  
-    one s: Server |  { 
-        all c: Client | c in s.connected
+pred basicClientServerStyle {  
+    all c : Client | {
+        some c.ctrl
+        no c.ds // A client cannot be associated with a data server
     }
 }
 
+pred clientServerArchitecture {  
+    // A system can only have one ControlServer
+    all c : Client | {
+        one c.ctrl // Each client is associated with one control server
 
-sig ControlServer, DataServer extends Server {}
+        no c.ds // Each client cannot be associated with a data server
+    }
+}
+
+runClientServerArchitecture : run clientServerArchitecture for exactly 4 Client, 1 Ctrl 
+
+runClientServerStyle : run basicClientServerStyle for exactly 1 Client, 1 Ctrl // Run the model for 5 clients and 5 servers
+
 
 pred distributedStyle {  
-    one ctrl: ControlServer | some ds: DataServer | {
-        all c: Client | {
-            (c in ctrl.connected) and 
+    // A system can only have one ControlServer
+    all c : Client | {
+        one c.ctrl // Each client is associated with one control server
 
-        (some d: DataServer | connects[ctrl][d]  )
-
-        }
-    }  
-}
-
-sig Task {
-    follows: set Task // Set of tasks that follow this task
-}
-
-
-
-
-// // A directed acyclic chain of Task nodes connected by Str edges.
-pred pipeFilterAcyclic {  
-  no t: Task | t in t.*follows  
-}
-
-
-// =============================================================================
-// Root-and-Hierarchy Integrity
-// =============================================================================
-
-// Production 15 (Initial State):
-// 1. Exactly 1 Root exists
-// 2. All top-level classes (classes with no parent class) descend from Root
-
-// Define properties of the special "root" of the graph, which is not a class 
-// in and of itself and is artificially introduced to facilitate verification
-// of graph structure
-one sig Root {
-    // set of top-level classes with no parent class
-    // that descend directly from artificial root of graph
-    topLevelClasses: set Class 
-}
-
-// A top level class that descends directly from root of graph
-// is one that has no parent class, i.e.
-pred hasNoParentClass[c: Class] {
-    // no parent class exists s.t. c is inherited from a parent class
-    no parent: Class | parent in c.inherits
-}
-
-// A special root node must connect to every top-level Class, i.e. every class 
-// without a parent class must be in the artificial root's set of top-level 
-// classes (ones with no parent class)
-pred rootConnectivity {
-    // if class c has no parent, then it must descend directly from the artificial
-    // root of the graph
-    all c: Class {
-        hasNoParentClass[c] implies (
-            c in Root.topLevelClasses
-        )
-    }
-    // if class c descends directly from the artificial root of the graph, then it
-    // must have no parent class
-    all c: Class {
-        c in Root.topLevelClasses implies (
-            hasNoParentClass[c]
-        )
+        some c.ds // Each client can be associated with multiple data servers
     }
 }
 
-// Graph must maintain root-and-hierarchy integrity for it to be well-formed
-// and able to undergo verification, i.e. this predicate lists the predicates that
-// must hold true before the graph can be verified
-pred rootAndHierarchyIntegrity {
-    noSelfInheritance // no class inherits from itself
-    linearInheritance // a class should not inherit from its own subclass at any level
-    singleInheritance // every class has at most one parent
-    noRedundantInheritance // no class inherits from both a parent and grandparent simultaneously
-    rootConnectivity // all classes with no parent class descend directly from root node
+runDistributedStyle : run distributedStyle for exactly 4 Client, 1 Ctrl, 2 Data // Run the model for 5 clients and 5 servers
+
+sig Str {
+    // Define properties of the edges
+    src: one Task, // Source task
+    dst: one Task  // Destination task
 }
 
-rootAndHierarchyIntegrityRun: run rootAndHierarchyIntegrity for exactly 5 Class
+// Pipe and Filter Style
+sig Task {}
+one sig StartTask extends Task {}  
+one sig EndTask   extends Task {}  
+
+fun follows: Task -> Task {
+    Str.src -> Str.dst
+}
+
+// Pipe-and-Filter Structure (no feedback)
+pred pipeFilterStructure {
+  // Every stream must connect two different tasks
+  all s: Str | s.src != s.dst
+
+  // No cycles (no task eventually follows itself)
+  no t: Task | t in t.^(follows)
+
+  // Only one stream between any two tasks
+  all disj s1, s2: Str | {
+    s1.src = s2.src and s1.dst = s2.dst implies s1 = s2
+  }
+
+  // Every Task except the *last* in the chain must have at least one outgoing stream
+  all t: Task | (some follows[t]) iff (some s: Str | s.src = t)
+
+  // Every Task except the *first* must have at least one incoming stream
+  all t: Task | (some (~follows)[t]) iff (some s: Str | s.dst = t)
+}
+
+
+runPipeFilterStructure : run pipeFilterStructure for 5 Str, 6 Task
+
+/*
+  Add a feedback loop: assert that there is at least one Str whose dst can 
+  eventually reach its src again—i.e. a cycle exists in the follows relation.
+*/
+pred pipeFilterFeedback {
+  // Every stream must connect two different tasks
+  all s: Str | s.src != s.dst
+
+  // There is at least one cycle in the follows relation
+  some t: Task | { 
+    t in t.^(follows) and t != StartTask 
+  }
+  // No cycles (no task eventually follows itself)
+  // no t: Task | t in t.^(follows)
+
+  // Only one stream between any two tasks
+  all disj s1, s2: Str | {
+    s1.src = s2.src and s1.dst = s2.dst implies s1 = s2
+  }
+
+  // Every Task except the *last* in the chain must have at least one outgoing stream
+  all t: Task | (some follows[t]) iff (some s: Str | s.src = t)
+
+  // Every Task except the *first* must have at least one incoming stream
+  all t: Task | (some (~follows)[t]) iff (some s: Str | s.dst = t)
+}
+
+runPipeFilterFeedback : run pipeFilterFeedback for 7 Str, 6 Task
+
+
+
+
+// ────────────────────────────────────────────────────────────
+// CAPSTONE : Transformation Predicate
+// ────────────────────────────────────────────────────────────
+
+sig Before {
+  streamsB: set Str,
+  tasksB: set Task
+}
+sig After {
+  streamsA: set Str,
+  tasksA: set Task
+}
+
+pred transformPF[b: Before, a: After] {
+  // The universe of tasks is unchanged:
+  #b.tasksB = #a.tasksA and (all t: b.tasksB | t in a.tasksA)
+
+  // Before has no feedback:
+  no t: b.tasksB | t in t.^(follows)
+
+  // There is exactly one new Str f in the After state:
+  some f: Str |
+    f.src = EndTask &&
+    f.dst = StartTask &&
+    a.streamsA = b.streamsB + f
+}
+
+
+// ────────────────────────────────────────────────────────────
+// 4. Running the Transformation
+// ────────────────────────────────────────────────────────────
+// We give Forge a small universe and ask it to build
+// a Before/After pair satisfying the transformPF rule.
+runTransformPF: run {
+  some b: Before, a: After | transformPF[b, a]
+} for exactly 5 Task, exactly 6 Str, exactly 1 Before, exactly 1 After
+
+/*
+    "Graph rewriting provides a device for reusing existing products
+    by performing a transformation.
+    
+    In general, software architecture transformation proceeds in two steps: 
+    a) verify the style of an architecture; 
+    b) transform an architecture from one style to another style. 
+    "
+
+    CAPSTONE : Model the transformation of a software architecture from one style to another.
+*/
+
+
+// “Before” snapshot: classic client–server
+sig BC {         // “Before Clients”
+  clientBC : set Client, // Clients in the before snapshot
+  ctrlB: one Ctrl,
+  dsB:   set Data
+}
+
+// “After” snapshot: distributed control–data
+sig AC {         // “After Clients”
+  clientAC : set Client, // Clients in the after snapshot
+  ctrlA: one Ctrl,
+  dsA:   set Data
+}
+
+// Source must be pure client–server: no data-server links
+pred isClientServer {
+  all c: BC | no c.dsB
+}
+
+// Target must allow data-server links
+pred isDistributed {
+  all c: AC | some c.dsA
+}
+
+pred transform {
+  all b: BC, a: AC | {
+    // whenever they share the same Ctrl, the DS-links satisfy the rewrite
+    (b.ctrlB = a.ctrlA) implies (no b.dsB and some a.dsA)
+  
+    // Number of clients must be the same in both snapshots
+    #b.clientBC = #a.clientAC and (all c: b.clientBC | c in a.clientAC)
+  }
+}
+
+runTransform : run transform for exactly 1 BC, exactly 1 AC, exactly 5 Client, exactly 1 Ctrl, exactly 2 Data // Run the model for 5 clients and 5 servers
+// Run the model for 5 clients and 5 servers
