@@ -26,7 +26,7 @@ pred hasNoParentClass[c: SimpleClass] {
 }
 
 hasNoParentClassRun: run { some c: SimpleClass | hasNoParentClass[c] } 
-    for exactly 1 SimpleClass, 1 AbstractClass
+    for exactly 1 SimpleClass, exactly 1 AbstractClass, exactly 0 Interface
 
 // A special root node must connect to every top-level SimpleClass, i.e. every class 
 // without a parent class must be in the artificial root's set of top-level 
@@ -48,7 +48,7 @@ pred rootConnectivity {
     }
 }
 
-rootConnectivityRun: run rootConnectivity for exactly 5 SimpleClass, exactly 5 AbstractClass
+rootConnectivityRun: run rootConnectivity for exactly 5 SimpleClass, exactly 5 AbstractClass, exactly 0 Interface
 
 // Graph must maintain root-and-hierarchy integrity for it to be well-formed
 // and able to undergo verification, i.e. this predicate lists the predicates that
