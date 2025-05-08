@@ -52,6 +52,108 @@ pred distributedStyle {
 
 runDistributedStyle : run distributedStyle for exactly 4 Client, 1 Ctrl, 2 Data // Run the model for 5 clients and 5 servers
 
+sig Str {
+    // Define properties of the edges
+    src: one Task, // Source task
+    dst: one Task  // Destination task
+}
+
+// Pipe and Filter Style
+sig Task {}
+one sig StartTask extends Task {}  
+one sig EndTask   extends Task {}  
+
+fun follows: Task -> Task {
+    Str.src -> Str.dst
+}
+
+// Pipe-and-Filter Structure (no feedback)
+pred pipeFilterStructure {
+  // Every stream must connect two different tasks
+  all s: Str | s.src != s.dst
+
+  // No cycles (no task eventually follows itself)
+  no t: Task | t in t.^(follows)
+
+  // Only one stream between any two tasks
+  all disj s1, s2: Str | {
+    s1.src = s2.src and s1.dst = s2.dst implies s1 = s2
+  }
+
+  // // Every Task except the *last* in the chain must have at least one outgoing stream
+  all t: Task | (some follows[t]) iff (some s: Str | s.src = t)
+
+  // // Every Task except the *first* must have at least one incoming stream
+  all t: Task | (some (~follows)[t]) iff (some s: Str | s.dst = t)
+}
+
+
+runPipeFilterStructure : run pipeFilterStructure for 5 Str, 6 Task
+
+/*
+  Add a feedback loop: assert that there is at least one Str whose dst can 
+  eventually reach its src again—i.e. a cycle exists in the follows relation.
+*/
+pred pipeFilterFeedback {
+  // Every stream must connect two different tasks
+  all s: Str | s.src != s.dst
+
+  // There is at least one cycle in the follows relation
+  some t: Task | { 
+    t in t.^(follows) and t != StartTask 
+  }
+  // No cycles (no task eventually follows itself)
+  // no t: Task | t in t.^(follows)
+
+  // Only one stream between any two tasks
+  all disj s1, s2: Str | {
+    s1.src = s2.src and s1.dst = s2.dst implies s1 = s2
+  }
+
+  // Every Task except the *last* in the chain must have at least one outgoing stream
+  all t: Task | (some follows[t]) iff (some s: Str | s.src = t)
+
+  // Every Task except the *first* must have at least one incoming stream
+  all t: Task | (some (~follows)[t]) iff (some s: Str | s.dst = t)
+}
+
+runPipeFilterFeedback : run pipeFilterFeedback for 7 Str, 6 Task
+
+sig Before {
+  streamsB: set Str
+}
+sig After {
+  streamsA: set Str
+}
+
+
+// ────────────────────────────────────────────────────────────
+// CAPSTONE : Transformation Predicate
+// ────────────────────────────────────────────────────────────
+pred transformPF[b: Before, a: After] {
+  // The universe of tasks is unchanged:
+  Task = Task
+
+  // Before has no feedback:
+  all s: b.streamsB | s.src != s.dst
+
+  // There is exactly one new Str f in the After state:
+  some f: Str |
+    f.src = EndTask &&
+    f.dst = StartTask &&
+    a.streamsA = b.streamsB + f
+}
+
+
+// ────────────────────────────────────────────────────────────
+// 4. Running the Transformation
+// ────────────────────────────────────────────────────────────
+// We give Forge a small universe and ask it to build
+// a Before/After pair satisfying the transformPF rule.
+run {
+  some b: Before, a: After | transformPF[b, a]
+} for exactly 5 Task, exactly 6 Str, exactly 1 Before, exactly 1 After
+
 /*
     "Graph rewriting provides a device for reusing existing products
     by performing a transformation.
@@ -61,74 +163,39 @@ runDistributedStyle : run distributedStyle for exactly 4 Client, 1 Ctrl, 2 Data 
     b) transform an architecture from one style to another style. 
     "
 
-    CAPSTONE Goal: Model the transformation of a software architecture from one style to another.
+    CAPSTONE : Model the transformation of a software architecture from one style to another.
 */
 
-// Source architecture types
-sig ClientS { ctrlS: one Ctrl, dsS: set Data }
 
-
-// Target architecture types
-sig ClientT { ctrlT: one Ctrl, dsT: set Data }
-// reuse the same Ctrl, Data sigs
-
-
-/*
-
-*/
-
-// all cS: ClientS | one cT: ClientT | ClientMap[cS] = cT
-
-// pred transformArchitecture {
-//   // 1: Same set of clients
-//   #ClientS = #ClientT
-
-//   // 2: ClientMap is a bijection
-//   all cS: ClientS | one cT: ClientT | ClientMap[cS] = cT
-//   all cT: ClientT | one cS: ClientS | cT = ClientMap[cS]
-
-//   // 3: Preserve control‐server assignment
-//   all cS: ClientS | {
-//     let cT = ClientMap[cS] |
-//       cS.ctrlS = cT.ctrlT
-//   }
-
-//   // 4: Data‐server associations only appear in the target
-//   all cS: ClientS | {
-//     let cT = ClientMap[cS] |
-//       no cS.dsS and some cT.dsT
-//   }
-// }
-
-// runTransformArchitecture : run transformArchitecture for exactly 3 Ctrl, 2 Data, 5 ClientS, 5 ClientT
-
-sig Str {
-    // Define properties of the edges
-    src: one Task, // Source task
-    dst: lone Task  // Destination task
+// “Before” snapshot: classic client–server
+sig BC {         // “Before Clients”
+  ctrlB: one Ctrl,
+  dsB:   set Data
 }
 
-// Pipe and Filter Style
-sig Task {
-    precedes: set Str, // Set of tasks that precede this task
-    follows: set Str // Set of tasks that follow this task
+// “After” snapshot: distributed control–data
+sig AC {         // “After Clients”
+  ctrlA: one Ctrl,
+  dsA:   set Data
 }
 
-
-
-// // A directed acyclic chain of Task nodes connected by Str edges.
-pred pipeFilterAcyclic {  
-    all t : Task | {
-        // Each task must have at least one preceding and one following edge
-        some t.precedes and
-        some t.follows
-
-        // No self-cycle
-        (t not in t.^follows) and (t not in t.^precedes)
-
-        // No cycles in the graph
-        no (t.*follows & t.*precedes)
-    }
+// Source must be pure client–server: no data-server links
+pred isClientServer {
+  all c: BC | no c.dsB
 }
 
-runPipeFilterAcyclic : run pipeFilterAcyclic for exactly 6 Task, 11 Str // Run the model for 5 tasks and 5 edges
+// Target must allow data-server links
+pred isDistributed {
+  all c: AC | some c.dsA
+}
+
+pred transform {
+  all b: BC, a: AC | {
+    // whenever they share the same Ctrl, the DS-links satisfy the rewrite
+    (b.ctrlB = a.ctrlA) implies (no b.dsB and some a.dsA)
+  
+    // Number of clients must be the same in both snapshots
+  }
+}
+
+runTransform : run transform for exactly 0 Task, 0 Str, 0 Client, exactly 4 BC, exactly 4 AC

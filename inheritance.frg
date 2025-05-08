@@ -14,15 +14,26 @@
     to model the Capstone exploration of the Java programming language. 
 
 */
-sig Interface {} // Define Interface signature
 
+sig Field {}
+sig Method {}
 
+sig Interface {
+    methodsI: set Method, // Methods defined in the interface
+    fieldsI: set Field // Fields defined in the interface
+} // Define Interface signature
 
+abstract sig ResolutionPolicy {}
+one sig LeftWins, RightWins, RequireOverride, MergeAll extends ResolutionPolicy {}
 
 sig Class {
     // Define properties of the class
     inherits: set Class, // Inheritance relationship
-    implements: set Interface // Interfaces implemented by the class
+    parentOrder: pfunc Class -> Int,   // an index for each parent
+    implements: set Interface, // Interfaces implemented by the class
+    methodsC: set Method, // Methods defined in the class
+    fieldsC: set Field, // Fields defined in the class
+    policy: one ResolutionPolicy // Resolution policy for multiple inheritance
 }
 
 
@@ -65,9 +76,10 @@ pred noRedundantInheritance {
 pred inheritanceConstraints {
     noSelfInheritance and linearInheritance and noRedundantInheritance
 
+    // No class should inherit from a class that implements the same interface
     all disj c1, c2: Class | {
         c1 in c2.inherits implies {
-            some i : Interface | i in c1.implements and not (i in c2.implements) // No class should inherit from a class that implements the same interface
+            some i : Interface | i in c1.implements and not (i in c2.implements) 
         }
     }
 }
@@ -90,34 +102,6 @@ pred multipleInheritance {
         #c.inherits > 1 // Each class can have multiple parents
     }
 }
-
-
-
-/*
-    Production 6: One Interface per Class
-
-    To TEST:
-    A graph specifying structure is invalid if it breaks at least one relationship
-    specified in any production. For example, Production 6 in Figure 3 define one 
-    interface can only attach to one class. If an interface is designed to be 
-    related to more than one class, a parser can indicate a violation of 
-    Production 6. 
-
-*/
-pred interfaceMultiplicity {
-    all c : Class | {
-        #c.implements = 1 or #c.implements = 0 // A class can implement at most one interface
-    }  
-}
-
-
-/*
-    NOTE: Found a case where a class was inheriting from a class that implements
-    the same interface.
-*/
-runInterfaceMultiplicity : run { interfaceMultiplicity and inheritanceConstraints } for 2 Class, 1 Interface // Run the model for 2 classes and 1 interface
-
-
 
 /*
     In UML, the generalization specifics a hierarchical relationship between a
@@ -146,8 +130,36 @@ pred generalization {
         singleInheritance or multipleInheritance) 
 }
 
+runGeneralization : run generalization for exactly 5 Class // Run the model for 5 classes
+
+/*
+    Production 6: One Interface per Class
+
+    To TEST:
+    A graph specifying structure is invalid if it breaks at least one relationship
+    specified in any production. For example, Production 6 in Figure 3 define one 
+    interface can only attach to one class. If an interface is designed to be 
+    related to more than one class, a parser can indicate a violation of 
+    Production 6. 
+
+*/
+pred interfaceMultiplicity {
+    all c : Class | {
+        #c.implements = 1 or #c.implements = 0 // A class can implement at most one interface
+    }  
+}
+
+
+/*
+    NOTE: Found a case where a class was inheriting from a class that implements
+    the same interface.
+*/
+runInterfaceMultiplicity : run { 
+    interfaceMultiplicity and inheritanceConstraints 
+} for 2 Class, 1 Interface // Run the model for 2 classes and 1 interface
+
 // ============================================================================
-// Resolutions for Multiple Inheritance
+// CAPSTONE : Resolutions for Multiple Inheritance
 // ============================================================================
 
 /*
@@ -156,13 +168,13 @@ pred generalization {
     clash between two parents.
 */
 
-pred javaResolution {
+pred interfacesOnly {
     // Java does not allow multiple inheritance of classes, but it does allow
     // multiple inheritance of interfaces.
 
     not multipleInheritance // No multiple inheritance of classes
 
-    all c : Class | {
+    (all c : Class | {
         c.inherits = c.inherits - c.implements // Classes cannot inherit from interfaces
 
         c.implements = c.implements - c.inherits // Interfaces cannot inherit from classes
@@ -172,13 +184,10 @@ pred javaResolution {
         #c.implements > 1 // A class can implement multiple interfaces
 
    
-    }
+    }) 
 
-    all disj c1, c2: Class | {
-        c1 in c2.inherits implies {
-            some i : Interface | i in c1.implements and not (i in c2.implements) // No class should inherit from a class that implements the same interface
-        }
-    }
+    // No class implements an interface that is implemented by any of its ancestors
+    all c: Class | no (c.implements & (c.^inherits).implements)
 }
 
 /*
@@ -189,15 +198,37 @@ pred javaResolution {
 */
 
 
-runJavaResolution : run {
-    javaResolution and inheritanceConstraints 
+runInterfacesOnly : run {
+    interfacesOnly and inheritanceConstraints 
 } for exactly 5 Class, 5 Interface // Run the model for 5 classes and 2 interfaces
 
-pred pythonicResolution {
-    // Linearize the inheritance graph and apply the C3 linearization algorithm
-    // to resolve the method resolution order (MRO).
-
-
+pred resolution {
+    all c: Class |
+        // If LeftWins: choose the first parent that does not inherit from any other parent
+        (c.policy = LeftWins) implies (
+        some p: c.inherits |
+                all q: c.inherits | parentOrder[c][p] <= parentOrder[c][q]
+        )
+      // If RightWins: choose the last parent that does not inherit from any other parent
+    &&  (c.policy = RightWins) implies (
+        some p: c.inherits |
+                all q: c.inherits | parentOrder[c][p] >= parentOrder[c][q]  
+        )
+      // If RequireOverride: subclass must declare its own methods for any inherited conflict
+    &&  (c.policy = RequireOverride) implies (
+            all p1, p2: c.inherits |
+              p1 != p2 implies (
+                let shared = p1.methodsC & p2.methodsC |
+                  all m: shared | m in c.methodsC
+              )
+        )
+      // If MergeAll: subclass automatically includes all methods of all parents
+    &&  (c.policy = MergeAll) implies (
+            all p: c.inherits | p.methodsC in c.methodsC
+        )
 }
 
-pred 
+runResolution : run {
+    resolution and inheritanceConstraints 
+} for exactly 5 Class, 5 Interface
+
