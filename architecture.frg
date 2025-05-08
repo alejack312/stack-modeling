@@ -183,7 +183,7 @@ pred noRedundantAssociationAtoms {
 
 */
 pred associationConstraints { 
-    noSelfAssociation and noInterfaceToInterfaceAssociation 
+    noSelfAssociation and noInterfaceToInterfaceAssociation and noRedundantAssociationAtoms
 
     
     /*
@@ -227,6 +227,12 @@ pred validAssociations {
         // The source and destination of the association must be different classes
         (a.src != a.dst)
     }
+    all disj a1, a2: Association | {
+        // Distinct associations must differ in either the source or target class
+        // such that there are no parallel/duplicate aggregation edges, i.e. at most
+        // 1 edge between any two nodes
+        (a1.src != a2.src) or (a1.dst != a2.dst)
+    }
 }
 
 /*
@@ -240,18 +246,8 @@ runValidAssociations : run { validAssociations and inheritanceConstraints} for 2
     Production 8: Aggregation
 */
 pred aggregationConstraints {
-    all agg: Aggregation | {
-        // The source and destination of the aggregation must be different classes 
-        (agg.src != agg.dst)
-    }
-    all disj agg1, agg2: Aggregation | {
-        // Distinct aggregations must differ in either the source or target class
-        // such that there are no parallel/duplicate aggregation edges, i.e. at most
-        // 1 edge between any two nodes
-        (agg1.src != agg2.src) or (agg1.dst != agg2.dst)
-    }
     no disj agg1, agg2: Aggregation | {
-        // Aggregation relationships cannot be mutual such that tge relationship can
+        // Aggregation relationships cannot be mutual such that the relationship can
         // be directly reversed to form another aggregation relationship, i.e. if A "has"
         // B, then it cannot be true that B "has" A
         (agg1.src = agg2.dst) and (agg2.src = agg1.dst)
@@ -268,22 +264,13 @@ runValidAggregation : run { aggregationConstraints and inheritanceConstraints} f
     Production 9: Composition
 */
 pred compositionConstraints {
-    all comp: Composition | {
-        // The source and destination of the composition must be different classes
-        (comp.src != comp.dst)
-    }
     all cl: Class | {
         // if a class is a destination in any composition relationship, it must be the 
-        // destination of exactly one composition
+        // destination of exactly one composition and may not be the destination of an aggregation
         (some comp: Composition | comp.dst = cl) implies (
-            one comp: Composition | comp.dst = cl
+            (one comp: Composition | comp.dst = cl) and
+            (no agg: Aggregation | agg.dst = cl)
         )
-    }
-    all disj comp1, comp2: Composition | {
-        // Distinct compositions must differ in either the source or target class
-        // such that there are no parallel/duplicate composition edges, i.e. at most
-        // 1 edge between any two nodes
-        (comp1.src != comp2.src) or (comp1.dst != comp2.dst)
     }
     no disj comp1, comp2: Composition | {
         // Composition relationships cannot be mutual such that the relationship can
@@ -300,13 +287,22 @@ pred compositionConstraints {
 runValidComposition : run { compositionConstraints and inheritanceConstraints} for exactly 3 Class, exactly 2 Composition, exactly 2 Association // Run the model for 3 classes and 2 associations
 
 /*
-    
+    No overlap between Aggregation and Composition regardless of direction since Aggregation
+    implies that the part/destination class can exist independently whereas a Composition
+    implies the opposite.
 */
 pred noAggregationCompositionOverlap {
+    // No Aggregation and Composition may have the same src and dst Classes
     all agg: Aggregation, comp: Composition | {
         not (agg.src = comp.src and agg.dst = comp.dst)
     }
+    // No Aggregation and Composition may have opposite/flipped src and dst Classes
+    all agg: Aggregation, comp: Composition | {
+        not (agg.src = comp.dst and agg.dst = comp.src)
+    }
 }
+
+runNoAggregationCompositionOverlap: run { aggregationConstraints and compositionConstraints and inheritanceConstraints and noAggregationCompositionOverlap} for exactly 5 Class, exactly 2 Composition, exactly 2 Aggregation, exactly 5 Association
 
 
 /*
