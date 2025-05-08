@@ -27,7 +27,6 @@ test suite for compositeStructure {
     } is sat
     
     // Checks that no Decorator wraps a class that is in the transitive children of any Composite
-    // (TODO: Check if this is correct)
     assert {
         compositeStructure and (no d: Decorator | {
             all comp: Composite | d.wraps in comp.^childrenC
@@ -97,7 +96,6 @@ test suite for decoratorStructure {
     assert {decoratorStructure and (no dec: Decorator | dec in dec.^wraps)} is sat
     
     // Test that checks if a decorator is not in the children of its wrapped component
-    // (TODO: Check if this is correct)
     assert {decoratorStructure and (no d: Decorator | {
             all comp: Composite | d.wraps in comp.^childrenC
     })} is sat

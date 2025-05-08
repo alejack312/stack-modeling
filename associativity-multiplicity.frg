@@ -60,10 +60,10 @@ pred associationConstraints {
 
     
     /*
-        TODO: Add a check that asserts that two Associations do not have the same source and destination.
+        Add a check that asserts that two Associations do not have the same source and destination.
         This is to prevent redundant association atoms. (this is covered by validAssociations already)
 
-        TODO: Check to see if a Association can have its source be one class 
+        Check to see if a Association can have its source be one class 
         and its destination be the child of that class. (yes, since this is not specified by definition for associations
         and is covered by acyclicity clauses for aggregations and compositions)
     */

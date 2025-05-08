@@ -214,9 +214,6 @@ runInterfacesOnly : run {
 } for exactly 5 SimpleClass, exactly 5 AbstractClass, 5 Interface // Run the model for 5 classes and 2 interfaces
 
 
-/*
-    TODO: Make sure to check fields as well.
-*/
 pred resolution {
     all c: ExtendedClass |
         // If LeftWins: choose the first parent that does not inherit from any other parent
