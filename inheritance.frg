@@ -193,8 +193,6 @@ pred interfacesOnly {
         // Check that a class cannot implement the same interface more than once
 
         #c.implements > 1 // A class can implement multiple interfaces
-
-   
     }) 
 
     // No class implements an interface that is implemented by any of its ancestors
